@@ -17,6 +17,16 @@ A minimalist, dark-themed timeboxing application built for macOS using Flutter. 
 - **Flexible Input**: Click the timer text to edit duration directly (supports `HH:MM:SS` or minutes).
 - **Background Support**: Timer continues accurately even when the app is in the background.
 
+
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/screenshot_1.png" width="200" />
+  <img src="screenshots/screenshot_2.png" width="200" />
+  <img src="screenshots/screenshot_3.png" width="200" />
+  <img src="screenshots/screenshot_4.png" width="200" />
+</p>
+
 ## Technology Stack
 
 - **Framework**: Flutter (macOS Desktop)
