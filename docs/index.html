@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timebox AI - Focus Timer for macOS</title>
+    <style>
+        :root {
+            --bg-color: #191919;
+            --card-color: #2C2C2C;
+            --accent-color: #D0FD3E;
+            --text-primary: #FFFFFF;
+            --text-secondary: #8E8E8E;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 4rem 2rem;
+            text-align: center;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: #000;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 50px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(208, 253, 62, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(208, 253, 62, 0.5);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1000px;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        .feature-card {
+            background-color: var(--card-color);
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: left;
+        }
+
+        .feature-card h3 {
+            color: var(--accent-color);
+            margin-top: 0;
+        }
+
+        .gallery {
+            display: flex;
+            gap: 1rem;
+            padding: 2rem;
+            overflow-x: auto;
+            max-width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .gallery img {
+            border-radius: 12px;
+            height: 400px; /* Constrain height to look nice */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        footer {
+            margin-top: auto;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        a { color: var(--accent-color); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Timebox AI</h1>
+        <p class="subtitle">The minimalist, dark-mode focus timer you've been waiting for.</p>
+        
+        <!-- Link to the latest release on GitHub -->
+        <a href="https://github.com/devmithunnath/timeboxai/releases/latest" class="cta-button">
+            Download for macOS
+        </a>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+            Requires macOS 11.0+
+        </p>
+    </header>
+
+    <div class="gallery">
+        <!-- Using local screen shots copied to docs/screenshots/ -->
+        <img src="screenshots/screenshot_1.png" alt="Timer Active">
+        <img src="screenshots/screenshot_2.png" alt="Timer Paused">
+    </div>
+
+    <div class="features">
+        <div class="feature-card">
+            <h3>Focus First</h3>
+            <p>A distractions-free interface designed to help you get into the flow state immediately.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Smart Controls</h3>
+            <p>Draggable frameless window, quick presets, and intuitive "squircle" progress ring.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Native Experience</h3>
+            <p>Built for macOS with native notifications, system sounds, and retina-ready visuals.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>Built with ❤️ using Flutter.</p>
+        <p><a href="https://github.com/devmithunnath/timeboxai">View Source on GitHub</a></p>
+    </footer>
+
+</body>
+</html>
