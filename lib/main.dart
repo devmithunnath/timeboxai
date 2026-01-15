@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'providers/timer_provider.dart';
+import 'services/analytics_service.dart';
 import 'ui/home_screen.dart';
 import 'ui/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
+
+  // Initialize PostHog analytics
+  await AnalyticsService().init();
 
   WindowOptions windowOptions = const WindowOptions(
     size: Size(600, 540),

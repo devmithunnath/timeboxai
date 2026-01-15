@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import '../providers/timer_provider.dart';
+import '../services/analytics_service.dart';
 import 'theme.dart';
 import 'widgets/media_player_control.dart';
 
@@ -148,7 +149,7 @@ class _TimerContent extends StatelessWidget {
                 "Small steps matter.",
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppTheme.textSecondary.withOpacity(0.7),
+                  color: AppTheme.textSecondary.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -178,6 +179,7 @@ class _PresetButton extends StatelessWidget {
       onTap: () {
         timer.resetTimer();
         timer.setDuration(seconds);
+        AnalyticsService().trackPresetSelected(seconds);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

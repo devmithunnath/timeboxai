@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../services/notification_service.dart';
+import '../services/analytics_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class TimerProvider with ChangeNotifier {
@@ -62,6 +63,9 @@ class TimerProvider with ChangeNotifier {
 
     notifyListeners();
 
+    // Track timer started
+    AnalyticsService().trackTimerStarted(_durationSeconds);
+
     _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (!_isRunning || _endTime == null) {
         timer.cancel();
@@ -86,6 +90,9 @@ class TimerProvider with ChangeNotifier {
     _isPaused = true;
     _endTime = null;
     notifyListeners();
+
+    // Track timer paused
+    AnalyticsService().trackTimerPaused(_remainingDuration.inSeconds);
   }
 
   void _finishTimer() {
@@ -104,6 +111,9 @@ class TimerProvider with ChangeNotifier {
     );
 
     _playNotificationSound();
+
+    // Track timer completed
+    AnalyticsService().trackTimerCompleted(_durationSeconds);
   }
 
   Future<void> _playNotificationSound() async {
@@ -128,6 +138,9 @@ class TimerProvider with ChangeNotifier {
     _remainingDuration = Duration(seconds: _durationSeconds);
     _endTime = null;
     notifyListeners();
+
+    // Track timer stopped
+    AnalyticsService().trackTimerStopped();
   }
 
   @override
