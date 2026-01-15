@@ -1,9 +1,9 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import '../providers/timer_provider.dart';
 import 'theme.dart';
+import 'widgets/media_player_control.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,19 +11,71 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onPanStart: (_) => windowManager.startDragging(),
-        child: Container(
-          color: AppTheme.background,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SizedBox(height: 10), // Safe area shim
-              // Timer Logic Consumer
-              const Expanded(child: _TimerContent()),
-            ],
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
           ),
+        ),
+        child: Consumer<TimerProvider>(
+          builder: (context, timer, child) {
+            // Calculate ant position: progress 1.0 = start (right), 0.0 = end (left)
+            // Window width is 600, ant is 240 wide.
+            // Start position: right edge (right: -20)
+            // End position: left edge (left: ~20, which means right: 600 - 240 - 20 = 340)
+            // As progress goes from 1.0 to 0.0, ant moves from right to left
+            final double windowWidth = 600;
+            final double antWidth = 240;
+            final double startRight = -20; // Starting position (right side)
+            final double endRight =
+                windowWidth - antWidth + 20; // Ending position (left side)
+
+            // Lerp from start to end based on inverse progress (1.0 = start, 0.0 = end)
+            final double currentRight =
+                startRight + (endRight - startRight) * (1.0 - timer.progress);
+
+            return Stack(
+              children: [
+                // Window Drag Area & Traffic Lights Placeholder
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 40,
+                  child: GestureDetector(
+                    onPanStart: (_) => windowManager.startDragging(),
+                    child: Container(
+                      color: Colors.transparent,
+                      padding: const EdgeInsets.only(left: 16, top: 12),
+                    ),
+                  ),
+                ),
+
+                // Main Content
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 48, 24, 24),
+                  child: _TimerContent(),
+                ),
+
+                // Ant Character - moves from right to left based on progress
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  right: currentRight,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Image.asset(
+                      'assets/images/character.png',
+                      width: antWidth,
+                      height: 240,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -39,95 +91,68 @@ class _TimerContent extends StatelessWidget {
       builder: (context, timer, _) {
         return Column(
           children: [
-            // Progress Squircle & Toggle
-            Expanded(
-              flex: 3,
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Progress Painter
-                    SizedBox(
-                      width: 220,
-                      height: 160,
-                      child: CustomPaint(
-                        painter: SquircleProgressPainter(
-                          progress: timer.progress,
-                          color: AppTheme.accent,
-                          emptyColor: AppTheme.card,
-                        ),
-                      ),
-                    ),
-                    // Play/Pause Button Area
-                    GestureDetector(
-                      onTap: () {
-                        if (timer.isRunning) {
-                          timer.pauseTimer();
-                        } else {
-                          timer.startTimer();
-                        }
-                      },
-                      child: Container(
-                        color: Colors.transparent, // Hitbox
-                        width: 100,
-                        height: 80,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          timer.isRunning
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          size: 64,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            // Play Button (with Stop button when active)
+            MediaPlayerControl(
+              isPlaying: timer.isRunning,
+              isActive: timer.isRunning || timer.isPaused,
+              onPlayPause: () {
+                if (timer.isRunning) {
+                  timer.pauseTimer();
+                } else {
+                  timer.startTimer();
+                }
+              },
+              onStop: timer.resetTimer,
+            ),
+
+            const SizedBox(height: 10),
+
+            // "Focus Run" Label
+            Text(
+              "Focus Run",
+              style: TextStyle(
+                fontSize: 18,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w400,
               ),
             ),
 
-            // Timer Text
-            Text("Timer", style: Theme.of(context).textTheme.bodyLarge),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
+
+            // Timer Display
             _EditableTimerDisplay(
               timer: timer,
               durationSeconds: timer.durationSeconds,
             ),
 
-            const SizedBox(height: 32),
-
-            // Stop Button
-            if (timer.isRunning || timer.isPaused || timer.isFinished)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: timer.resetTimer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.card,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text("Stop", style: TextStyle(fontSize: 18)),
-                ),
-              )
-            else
-              const SizedBox(height: 56),
-
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // Presets
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _PresetButton(label: "5 min", seconds: 5 * 60, timer: timer),
-                const SizedBox(width: 8),
-                _PresetButton(label: "10 min", seconds: 10 * 60, timer: timer),
-                const SizedBox(width: 8),
-                _PresetButton(label: "15 min", seconds: 15 * 60, timer: timer),
+                _PresetButton(label: "5 mins", seconds: 5 * 60, timer: timer),
+                const SizedBox(width: 12),
+                _PresetButton(label: "10 mins", seconds: 10 * 60, timer: timer),
+                const SizedBox(width: 12),
+                _PresetButton(label: "15 mins", seconds: 15 * 60, timer: timer),
               ],
             ),
-            const SizedBox(height: 20),
+
+            const Spacer(),
+
+            // Footer Quote
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Text(
+                "Small steps matter.",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textSecondary.withOpacity(0.7),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
           ],
         );
       },
@@ -151,28 +176,22 @@ class _PresetButton extends StatelessWidget {
     bool isActive = timer.durationSeconds == seconds;
     return GestureDetector(
       onTap: () {
-        // Reset first to stop any running timer and clear progress
         timer.resetTimer();
         timer.setDuration(seconds);
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color:
-              isActive
-                  ? const Color(0xFF4A5228)
-                  : AppTheme.card, // Dark olive if active
-          borderRadius: BorderRadius.circular(12),
-          border:
-              isActive
-                  ? Border.all(color: AppTheme.accent.withOpacity(0.5))
-                  : null,
+          color: isActive ? AppTheme.accent : AppTheme.card,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isActive ? AppTheme.accent : AppTheme.textSecondary,
+            color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
+            fontSize: 14,
           ),
         ),
       ),
@@ -217,30 +236,33 @@ class _EditableTimerDisplayState extends State<_EditableTimerDisplay> {
 
   @override
   Widget build(BuildContext context) {
+    TextStyle timerStyle = const TextStyle(
+      fontSize: 56,
+      fontWeight: FontWeight.w600,
+      fontFamily: '.SF Pro Display',
+      color: AppTheme.textPrimary,
+      letterSpacing: 2,
+    );
+
     if (widget.timer.isRunning ||
         widget.timer.isPaused ||
         widget.timer.isFinished) {
       final duration = widget.timer.remainingDuration;
       String twoDigits(int n) => n.toString().padLeft(2, '0');
-      final hours =
-          duration.inHours > 0 ? '${twoDigits(duration.inHours)}:' : '';
-      final minutes = twoDigits(duration.inMinutes.remainder(60));
-      final seconds = twoDigits(duration.inSeconds.remainder(60));
-      return Text(
-        "$hours$minutes:$seconds",
-        style: Theme.of(context).textTheme.displayLarge,
+      final minutes = twoDigits(
+        duration.inMinutes.remainder(60) + duration.inHours * 60,
       );
+      final seconds = twoDigits(duration.inSeconds.remainder(60));
+      return Text("$minutes:$seconds", style: timerStyle);
     }
 
     return SizedBox(
-      width: 300,
+      width: 240,
       child: TextField(
         textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.displayLarge,
+        style: timerStyle,
         controller: _controller,
         decoration: const InputDecoration(
-          hintText: "00:25:00",
-          hintStyle: TextStyle(color: Color(0xFF444444)),
           border: InputBorder.none,
           contentPadding: EdgeInsets.zero,
         ),
@@ -253,14 +275,13 @@ class _EditableTimerDisplayState extends State<_EditableTimerDisplay> {
   }
 
   String _formatDuration(int totalSeconds) {
-    if (totalSeconds == 0) return "";
     final duration = Duration(seconds: totalSeconds);
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(duration.inHours);
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final minutes = twoDigits(
+      duration.inMinutes.remainder(60) + duration.inHours * 60,
+    );
     final seconds = twoDigits(duration.inSeconds.remainder(60));
-    if (duration.inHours == 0) return "$minutes:$seconds";
-    return "$hours:$minutes:$seconds";
+    return "$minutes:$seconds";
   }
 
   int _parseDuration(String input) {
@@ -268,57 +289,6 @@ class _EditableTimerDisplayState extends State<_EditableTimerDisplay> {
     if (parts.isEmpty) return 0;
     if (parts.length == 1) return parts[0] * 60;
     if (parts.length == 2) return parts[0] * 60 + parts[1];
-    if (parts.length == 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
     return 0;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
-class SquircleProgressPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  final Color emptyColor;
-
-  SquircleProgressPainter({
-    required this.progress,
-    required this.color,
-    required this.emptyColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 16
-          ..strokeCap = StrokeCap.round
-          ..color = emptyColor;
-
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(50));
-
-    canvas.drawRRect(rrect, paint);
-
-    if (progress > 0) {
-      paint.color = color;
-      Path path = Path()..addRRect(rrect);
-
-      var metrics = path.computeMetrics();
-      for (var metric in metrics) {
-        double drawLength = metric.length * progress;
-        Path extract = metric.extractPath(0, drawLength);
-        canvas.drawPath(extract, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant SquircleProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress;
   }
 }
