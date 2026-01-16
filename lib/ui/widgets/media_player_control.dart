@@ -62,14 +62,14 @@ class PlayButton extends StatelessWidget {
           boxShadow: [
             // Soft ambient shadow
             BoxShadow(
-              color: MediaPlayerStyles.primaryColor.withOpacity(0.4),
+              color: MediaPlayerStyles.primaryColor.withValues(alpha: 0.4),
               blurRadius: 20,
               offset: const Offset(0, 8),
               spreadRadius: 0,
             ),
             // Subtle inner glow effect at top
             BoxShadow(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               blurRadius: 1,
               offset: const Offset(0, -1),
               spreadRadius: 0,
@@ -120,14 +120,14 @@ class StopButton extends StatelessWidget {
           boxShadow: [
             // Soft ambient shadow
             BoxShadow(
-              color: MediaPlayerStyles.primaryColor.withOpacity(0.4),
+              color: MediaPlayerStyles.primaryColor.withValues(alpha: 0.4),
               blurRadius: 20,
               offset: const Offset(0, 8),
               spreadRadius: 0,
             ),
             // Subtle inner glow effect at top
             BoxShadow(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               blurRadius: 1,
               offset: const Offset(0, -1),
               spreadRadius: 0,
