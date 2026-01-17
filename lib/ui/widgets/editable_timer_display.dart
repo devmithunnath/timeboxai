@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../providers/timer_provider.dart';
 import '../theme.dart';
 
-/// Editable timer display - the focal point of the timer UI
 class EditableTimerDisplay extends StatefulWidget {
   final TimerProvider timer;
   final int durationSeconds;
@@ -30,7 +29,6 @@ class _EditableTimerDisplayState extends State<EditableTimerDisplay>
       text: _formatDuration(widget.durationSeconds),
     );
 
-    // Subtle pulse animation for running state
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -50,7 +48,6 @@ class _EditableTimerDisplayState extends State<EditableTimerDisplay>
       }
     }
 
-    // Control pulse animation based on timer state
     if (widget.timer.isRunning && !_pulseController.isAnimating) {
       _pulseController.repeat(reverse: true);
     } else if (!widget.timer.isRunning && _pulseController.isAnimating) {
@@ -68,7 +65,6 @@ class _EditableTimerDisplayState extends State<EditableTimerDisplay>
 
   @override
   Widget build(BuildContext context) {
-    // Timer as the clear focal point - larger size, SF Pro Rounded style
     TextStyle timerStyle = TextStyle(
       fontSize: 72,
       fontWeight: FontWeight.w600,

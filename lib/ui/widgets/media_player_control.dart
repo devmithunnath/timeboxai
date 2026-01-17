@@ -1,41 +1,25 @@
 import 'package:flutter/material.dart';
 import '../../services/sound_service.dart';
 
-// =============================================================================
-// CONSTANTS - Modern minimalist button styling
-// =============================================================================
-
 class MediaPlayerStyles {
   MediaPlayerStyles._();
 
-  // Play/Pause button (circular) - reduced from 80 to 64
   static const double playButtonSize = 64.0;
-
-  // Stop button (smaller circular)
   static const double stopButtonSize = 48.0;
 
-  // Colors - Primary accent (warm orange)
   static const Color primaryColor = Color(0xFFE85A3C);
   static const Color primaryColorLight = Color(0xFFF07052);
 
-  // Colors - Muted (for stop button and secondary elements)
   static const Color mutedColor = Color(0xFF8B5A4A);
   static const Color mutedColorLight = Color(0xFFA06B5A);
 
-  // Colors - Icons
   static const Color iconColor = Color(0xFFFFF8F0);
 
-  // Colors - Subtle backgrounds for unselected states
   static const Color subtleBackground = Color(0xFFF5EDE8);
   static const Color subtleBorder = Color(0xFFE0D5CC);
 
-  // Shadows
   static const Color shadowColor = Color(0x40000000);
 }
-
-// =============================================================================
-// MODERN PLAY/PAUSE BUTTON WITH HOVER EFFECTS
-// =============================================================================
 
 class PlayButton extends StatefulWidget {
   final bool isPlaying;
@@ -108,7 +92,6 @@ class _PlayButtonState extends State<PlayButton>
                     ],
                   ),
                   boxShadow: [
-                    // Soft ambient shadow - enhanced on hover
                     BoxShadow(
                       color: MediaPlayerStyles.primaryColor.withValues(
                         alpha: _isHovered ? 0.5 : 0.3,
@@ -117,7 +100,6 @@ class _PlayButtonState extends State<PlayButton>
                       offset: Offset(0, _isHovered ? 10 : 6),
                       spreadRadius: 0,
                     ),
-                    // Subtle inner glow effect at top
                     BoxShadow(
                       color: Colors.white.withValues(alpha: 0.15),
                       blurRadius: 1,
@@ -150,10 +132,6 @@ class _PlayButtonState extends State<PlayButton>
     );
   }
 }
-
-// =============================================================================
-// MODERN STOP BUTTON WITH HOVER EFFECTS
-// =============================================================================
 
 class StopButton extends StatefulWidget {
   final VoidCallback? onTap;
@@ -253,10 +231,6 @@ class _StopButtonState extends State<StopButton>
     );
   }
 }
-
-// =============================================================================
-// MEDIA PLAYER CONTROL WIDGET
-// =============================================================================
 
 class MediaPlayerControl extends StatelessWidget {
   final bool isPlaying;

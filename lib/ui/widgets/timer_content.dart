@@ -5,7 +5,6 @@ import 'editable_timer_display.dart';
 import 'media_player_control.dart';
 import 'preset_button.dart';
 
-/// Timer content widget - contains timer display, controls, and presets
 class TimerContent extends StatelessWidget {
   const TimerContent({super.key});
 
@@ -17,7 +16,6 @@ class TimerContent extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Timer Display - THE STAR!
             EditableTimerDisplay(
               timer: timer,
               durationSeconds: timer.durationSeconds,
@@ -25,7 +23,6 @@ class TimerContent extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Play Button (with Stop button when active)
             MediaPlayerControl(
               isPlaying: timer.isRunning,
               isActive: timer.isRunning || timer.isPaused,
@@ -41,7 +38,6 @@ class TimerContent extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            // Presets with improved spacing
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'media_player_control.dart';
 
-/// Settings button with hover effects
 class SettingsButton extends StatefulWidget {
   final VoidCallback onPressed;
 

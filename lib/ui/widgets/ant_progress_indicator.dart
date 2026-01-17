@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../providers/timer_provider.dart';
 
-/// Ant progress indicator that shows the ant's journey across the screen
-/// with personality, smooth animation, and clear visual feedback.
 class AntProgressIndicator extends StatefulWidget {
   final TimerProvider timer;
   final double windowWidth;
@@ -21,38 +19,31 @@ class AntProgressIndicator extends StatefulWidget {
 
 class _AntProgressIndicatorState extends State<AntProgressIndicator>
     with TickerProviderStateMixin {
-  // Smooth position animation
   late AnimationController _positionController;
 
-  // Breathing/idle animation
   late AnimationController _breathingController;
   late Animation<double> _breathingAnimation;
 
-  // Walking bob animation
   late AnimationController _walkingController;
   late Animation<double> _walkBobAnimation;
   late Animation<double> _walkLeanAnimation;
 
-  // Celebration animation
   late AnimationController _celebrationController;
   late Animation<double> _bounceAnimation;
   late Animation<double> _sparkleAnimation;
 
-  // Confused/paused animation
   late AnimationController _confusedController;
   late Animation<double> _headTiltAnimation;
 
-  // Track progress for smooth interpolation
   double _currentDisplayProgress = 1.0;
   double _targetProgress = 1.0;
   int _lastMinute = -1;
   bool _hasPassedHalfway = false;
 
-  // Layout constants
   static const double antWidth = 200;
   static const double antHeight = 150;
   static const double pathPadding = 40;
-  static const double pathHeight = 50; // Height of the path area
+  static const double pathHeight = 50;
 
   @override
   void initState() {
@@ -67,7 +58,6 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
       vsync: this,
     );
 
-    // Breathing animation (idle state)
     _breathingController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -76,7 +66,6 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
       CurvedAnimation(parent: _breathingController, curve: Curves.easeInOut),
     );
 
-    // Walking animation (running state)
     _walkingController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -88,7 +77,6 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
       CurvedAnimation(parent: _walkingController, curve: Curves.easeInOut),
     );
 
-    // Celebration animation (finished state)
     _celebrationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -105,7 +93,6 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
       CurvedAnimation(parent: _celebrationController, curve: Curves.easeOut),
     );
 
-    // Confused animation (paused state)
     _confusedController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -146,10 +133,8 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
   void didUpdateWidget(AntProgressIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Update target progress for smooth interpolation
     _targetProgress = widget.timer.progress;
 
-    // Check for state changes
     if (widget.timer.isRunning) {
       _startWalkingAnimation();
       _checkMinuteChange();
@@ -169,16 +154,13 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
 
   void _checkMinuteChange() {
     final currentMinute = widget.timer.remainingDuration.inMinutes;
-    if (_lastMinute != -1 && currentMinute != _lastMinute) {
-      // Minute changed - could add a subtle step animation here
-    }
+    if (_lastMinute != -1 && currentMinute != _lastMinute) {}
     _lastMinute = currentMinute;
   }
 
   void _checkHalfwayPoint() {
     if (!_hasPassedHalfway && widget.timer.progress < 0.5) {
       _hasPassedHalfway = true;
-      // Halfway point reached - ant could look back
     }
   }
 
@@ -192,25 +174,21 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
     super.dispose();
   }
 
-  // Calculate ant's horizontal position
   double _calculateAntPosition() {
     final pathWidth = widget.windowWidth - (pathPadding * 2) - antWidth;
-    final startX = pathPadding; // Start on the left (goal)
+    final startX = pathPadding;
 
-    // Smooth interpolation towards target with speed multiplier
     final speedMultiplier = _getSpeedMultiplier();
     _currentDisplayProgress =
         _currentDisplayProgress +
         (_targetProgress - _currentDisplayProgress) * 0.1 * speedMultiplier;
 
-    // Progress 1.0 = start (right), 0.0 = finish (left)
     return startX + (pathWidth * _currentDisplayProgress);
   }
 
-  // Get speed multiplier for last 10%
   double _getSpeedMultiplier() {
     if (widget.timer.progress < 0.1) {
-      return 1.2; // Speed up in last 10%
+      return 1.2;
     }
     return 1.0;
   }
@@ -267,27 +245,21 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
       builder: (context, child) {
         final antX = _calculateAntPosition();
 
-        // Determine current state modifiers
         double scale = 1.0;
         double rotation = 0.0;
         double yOffset = 0.0;
 
         if (widget.timer.isFinished) {
-          // Celebration: bounce and slight scale
           yOffset = _bounceAnimation.value;
           scale = 1.0 + (_sparkleAnimation.value * 0.05);
         } else if (widget.timer.isPaused) {
-          // Confused: head tilt
           rotation = _headTiltAnimation.value;
           scale = _breathingAnimation.value;
         } else if (widget.timer.isRunning) {
-          // Walking: bob and lean forward
           yOffset = _walkBobAnimation.value;
-          rotation =
-              -_walkLeanAnimation.value; // Lean forward (negative = left)
+          rotation = -_walkLeanAnimation.value;
           scale = 1.0;
         } else {
-          // Idle: breathing
           scale = _breathingAnimation.value;
         }
 

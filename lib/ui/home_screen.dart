@@ -8,10 +8,8 @@ import 'widgets/timer_content.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // Layout constants
-  static const double _antAreaHeight =
-      220; // antHeight(150) + pathHeight(50) + 20
-  static const double _footerTextHeight = 40; // Space for "Small steps matter."
+  static const double _antAreaHeight = 220;
+  static const double _footerTextHeight = 40;
   static const double _bottomReserved = _antAreaHeight + _footerTextHeight;
 
   @override
@@ -23,7 +21,6 @@ class HomeScreen extends StatelessWidget {
           builder: (context, timer, child) {
             return Stack(
               children: [
-                // Window Drag Area & Traffic Lights Placeholder
                 Positioned(
                   top: 0,
                   left: 0,
@@ -38,7 +35,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
 
-                // Main Content - positioned to leave room for footer and ant
                 Positioned(
                   top: 48,
                   left: 24,
@@ -47,7 +43,6 @@ class HomeScreen extends StatelessWidget {
                   child: const TimerContent(),
                 ),
 
-                // Ant Progress Indicator at bottom
                 Positioned(
                   left: 0,
                   right: 0,
@@ -55,7 +50,6 @@ class HomeScreen extends StatelessWidget {
                   child: AntProgressIndicator(timer: timer, windowWidth: 600),
                 ),
 
-                // Fixed Footer - Motivational text (anchored above ant)
                 Positioned(
                   left: 0,
                   right: 0,

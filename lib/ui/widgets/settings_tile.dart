@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
-/// Settings tile widget for displaying individual settings items
 class SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;

@@ -4,7 +4,6 @@ import '../../services/analytics_service.dart';
 import '../theme.dart';
 import 'media_player_control.dart';
 
-/// Preset button with improved states and hover effects
 class PresetButton extends StatefulWidget {
   final String label;
   final int seconds;

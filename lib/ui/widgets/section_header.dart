@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
-/// Section header widget for settings and other list-based screens
 class SectionHeader extends StatelessWidget {
   final String title;
 
