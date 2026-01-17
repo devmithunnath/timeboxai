@@ -35,19 +35,36 @@ class AnalyticsService {
 
   /// Track a custom event
   void trackEvent(String eventName, {Map<String, Object>? properties}) {
-    if (!_isInitialized) return;
+    if (kDebugMode) {
+      print('[Analytics] trackEvent: $eventName, properties: $properties');
+    }
+
+    if (!_isInitialized) {
+      if (kDebugMode) {
+        print('[Analytics] WARNING: Not initialized, skipping event');
+      }
+      return;
+    }
 
     try {
       Posthog().capture(eventName: eventName, properties: properties);
+      if (kDebugMode) {
+        print('[Analytics] Event sent successfully: $eventName');
+      }
     } catch (e) {
       if (kDebugMode) {
-        print('Error tracking event: $e');
+        print('[Analytics] Error tracking event: $e');
       }
     }
   }
 
   /// Track timer started
   void trackTimerStarted(int durationSeconds) {
+    if (kDebugMode) {
+      print(
+        '[Analytics] >>> TIMER STARTED: ${durationSeconds}s (${durationSeconds ~/ 60} min)',
+      );
+    }
     trackEvent(
       'timer_started',
       properties: {
@@ -59,6 +76,9 @@ class AnalyticsService {
 
   /// Track timer paused
   void trackTimerPaused(int remainingSeconds) {
+    if (kDebugMode) {
+      print('[Analytics] >>> TIMER PAUSED: ${remainingSeconds}s remaining');
+    }
     trackEvent(
       'timer_paused',
       properties: {'remaining_seconds': remainingSeconds},
@@ -67,11 +87,19 @@ class AnalyticsService {
 
   /// Track timer stopped/reset
   void trackTimerStopped() {
+    if (kDebugMode) {
+      print('[Analytics] >>> TIMER STOPPED');
+    }
     trackEvent('timer_stopped');
   }
 
   /// Track timer completed
   void trackTimerCompleted(int durationSeconds) {
+    if (kDebugMode) {
+      print(
+        '[Analytics] >>> TIMER COMPLETED: ${durationSeconds}s (${durationSeconds ~/ 60} min)',
+      );
+    }
     trackEvent(
       'timer_completed',
       properties: {
@@ -83,6 +111,11 @@ class AnalyticsService {
 
   /// Track preset selected
   void trackPresetSelected(int seconds) {
+    if (kDebugMode) {
+      print(
+        '[Analytics] >>> PRESET SELECTED: ${seconds}s (${seconds ~/ 60} min)',
+      );
+    }
     trackEvent(
       'preset_selected',
       properties: {

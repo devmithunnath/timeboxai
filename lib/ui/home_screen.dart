@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import '../providers/timer_provider.dart';
 import '../services/analytics_service.dart';
+import '../main.dart';
 import 'theme.dart';
 import 'widgets/media_player_control.dart';
 
@@ -13,31 +14,39 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
+        color: Colors.white,
         child: Consumer<TimerProvider>(
           builder: (context, timer, child) {
-            // Calculate ant position: progress 1.0 = start (right), 0.0 = end (left)
-            // Window width is 600, ant is 240 wide.
-            // Start position: right edge (right: -20)
-            // End position: left edge (left: ~20, which means right: 600 - 240 - 20 = 340)
-            // As progress goes from 1.0 to 0.0, ant moves from right to left
             final double windowWidth = 600;
-            final double antWidth = 240;
-            final double startRight = -20; // Starting position (right side)
-            final double endRight =
-                windowWidth - antWidth + 20; // Ending position (left side)
+            final double antWidth = 220; // Slightly scaled down (was 240)
+            final double startRight = -20;
+            final double endRight = windowWidth - antWidth + 20;
 
-            // Lerp from start to end based on inverse progress (1.0 = start, 0.0 = end)
             final double currentRight =
                 startRight + (endRight - startRight) * (1.0 - timer.progress);
 
             return Stack(
               children: [
+                // Subtle floor gradient to anchor the ant
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 80,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.03),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
                 // Window Drag Area & Traffic Lights Placeholder
                 Positioned(
                   top: 0,
@@ -53,24 +62,56 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
 
+                // Settings Icon - Top Right (softer styling)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _SettingsButton(onPressed: () => openSettingsWindow()),
+                ),
+
                 // Main Content
                 const Padding(
                   padding: EdgeInsets.fromLTRB(24, 48, 24, 24),
                   child: _TimerContent(),
                 ),
 
-                // Ant Character - moves from right to left based on progress
+                // Ant Character with shadow - moves from right to left
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                   right: currentRight,
-                  bottom: 0,
+                  bottom: 35,
                   child: IgnorePointer(
-                    child: Image.asset(
-                      'assets/images/character.png',
-                      width: antWidth,
-                      height: 240,
-                      fit: BoxFit.contain,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Ant celebration animation when finished
+                        AnimatedScale(
+                          duration: const Duration(milliseconds: 300),
+                          scale: timer.isFinished ? 1.05 : 1.0,
+                          child: Image.asset(
+                            'assets/images/character.png',
+                            width: antWidth,
+                            height: 185, // Slightly scaled down
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        // Soft shadow under ant
+                        Container(
+                          width: antWidth * 0.6,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(50),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -83,6 +124,58 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+// =============================================================================
+// SETTINGS BUTTON WITH HOVER EFFECTS
+// =============================================================================
+
+class _SettingsButton extends StatefulWidget {
+  final VoidCallback onPressed;
+
+  const _SettingsButton({required this.onPressed});
+
+  @override
+  State<_SettingsButton> createState() => _SettingsButtonState();
+}
+
+class _SettingsButtonState extends State<_SettingsButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color:
+                _isHovered
+                    ? MediaPlayerStyles.subtleBackground
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: _isHovered ? 1.0 : 0.6,
+            child: Icon(
+              Icons.settings_rounded,
+              color: MediaPlayerStyles.mutedColor,
+              size: 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// TIMER CONTENT
+// =============================================================================
+
 class _TimerContent extends StatelessWidget {
   const _TimerContent();
 
@@ -92,6 +185,14 @@ class _TimerContent extends StatelessWidget {
       builder: (context, timer, _) {
         return Column(
           children: [
+            // Timer Display - NOW THE STAR!
+            _EditableTimerDisplay(
+              timer: timer,
+              durationSeconds: timer.durationSeconds,
+            ),
+
+            const SizedBox(height: 20),
+
             // Play Button (with Stop button when active)
             MediaPlayerControl(
               isPlaying: timer.isRunning,
@@ -106,50 +207,33 @@ class _TimerContent extends StatelessWidget {
               onStop: timer.resetTimer,
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 28),
 
-            // "Focus Run" Label
-            Text(
-              "Focus Run",
-              style: TextStyle(
-                fontSize: 18,
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            // Timer Display
-            _EditableTimerDisplay(
-              timer: timer,
-              durationSeconds: timer.durationSeconds,
-            ),
-
-            const SizedBox(height: 24),
-
-            // Presets
+            // Presets with improved spacing
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _PresetButton(label: "5 mins", seconds: 5 * 60, timer: timer),
-                const SizedBox(width: 12),
-                _PresetButton(label: "10 mins", seconds: 10 * 60, timer: timer),
-                const SizedBox(width: 12),
-                _PresetButton(label: "15 mins", seconds: 15 * 60, timer: timer),
+                _PresetButton(label: "5 min", seconds: 5 * 60, timer: timer),
+                const SizedBox(width: 16),
+                _PresetButton(label: "10 min", seconds: 10 * 60, timer: timer),
+                const SizedBox(width: 16),
+                _PresetButton(label: "15 min", seconds: 15 * 60, timer: timer),
               ],
             ),
 
             const Spacer(),
 
-            // Footer Quote
+            // Footer Quote - lighter styling
             Align(
               alignment: Alignment.bottomCenter,
               child: Text(
                 "Small steps matter.",
                 style: TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontFamily: '.SF Pro Text',
+                  fontWeight: FontWeight.w400,
+                  color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
+                  letterSpacing: 0.3,
                 ),
               ),
             ),
@@ -161,7 +245,11 @@ class _TimerContent extends StatelessWidget {
   }
 }
 
-class _PresetButton extends StatelessWidget {
+// =============================================================================
+// PRESET BUTTON WITH IMPROVED STATES
+// =============================================================================
+
+class _PresetButton extends StatefulWidget {
   final String label;
   final int seconds;
   final TimerProvider timer;
@@ -173,33 +261,79 @@ class _PresetButton extends StatelessWidget {
   });
 
   @override
+  State<_PresetButton> createState() => _PresetButtonState();
+}
+
+class _PresetButtonState extends State<_PresetButton> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    bool isActive = timer.durationSeconds == seconds;
-    return GestureDetector(
-      onTap: () {
-        timer.resetTimer();
-        timer.setDuration(seconds);
-        AnalyticsService().trackPresetSelected(seconds);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? AppTheme.accent : AppTheme.card,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
+    bool isActive = widget.timer.durationSeconds == widget.seconds;
+    bool isDisabled = widget.timer.isRunning || widget.timer.isPaused;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap:
+            isDisabled
+                ? null
+                : () {
+                  widget.timer.resetTimer();
+                  widget.timer.setDuration(widget.seconds);
+                  AnalyticsService().trackPresetSelected(widget.seconds);
+                },
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: isDisabled ? 0.4 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color:
+                  isActive
+                      ? AppTheme.accent
+                      : _isHovered && !isDisabled
+                      ? MediaPlayerStyles.subtleBackground
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color:
+                    isActive ? AppTheme.accent : MediaPlayerStyles.subtleBorder,
+                width: 1.5,
+              ),
+              boxShadow:
+                  _isHovered && !isDisabled && !isActive
+                      ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                      : null,
+            ),
+            child: Text(
+              widget.label,
+              style: TextStyle(
+                color: isActive ? Colors.white : MediaPlayerStyles.mutedColor,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 13,
+                fontFamily: '.SF Pro Text',
+                letterSpacing: 0.2,
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+// =============================================================================
+// EDITABLE TIMER DISPLAY - THE FOCAL POINT
+// =============================================================================
 
 class _EditableTimerDisplay extends StatefulWidget {
   final TimerProvider timer;
@@ -214,14 +348,26 @@ class _EditableTimerDisplay extends StatefulWidget {
   State<_EditableTimerDisplay> createState() => _EditableTimerDisplayState();
 }
 
-class _EditableTimerDisplayState extends State<_EditableTimerDisplay> {
+class _EditableTimerDisplayState extends State<_EditableTimerDisplay>
+    with SingleTickerProviderStateMixin {
   late TextEditingController _controller;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(
       text: _formatDuration(widget.durationSeconds),
+    );
+
+    // Subtle pulse animation for running state
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.02).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
 
@@ -234,16 +380,32 @@ class _EditableTimerDisplayState extends State<_EditableTimerDisplay> {
         _controller.text = newText;
       }
     }
+
+    // Control pulse animation based on timer state
+    if (widget.timer.isRunning && !_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    } else if (!widget.timer.isRunning && _pulseController.isAnimating) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _pulseController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    TextStyle timerStyle = const TextStyle(
-      fontSize: 56,
+    // Timer as the clear focal point - larger size, SF Pro Rounded style
+    TextStyle timerStyle = TextStyle(
+      fontSize: 72, // Increased from 56
       fontWeight: FontWeight.w600,
-      fontFamily: '.SF Pro Display',
-      color: AppTheme.textPrimary,
-      letterSpacing: 2,
+      fontFamily: '.SF Pro Rounded', // Friendlier rounded font
+      color: AppTheme.accent,
+      letterSpacing: 4, // Increased letter spacing
     );
 
     if (widget.timer.isRunning ||
@@ -255,11 +417,20 @@ class _EditableTimerDisplayState extends State<_EditableTimerDisplay> {
         duration.inMinutes.remainder(60) + duration.inHours * 60,
       );
       final seconds = twoDigits(duration.inSeconds.remainder(60));
-      return Text("$minutes:$seconds", style: timerStyle);
+
+      return AnimatedBuilder(
+        animation: _pulseAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: widget.timer.isRunning ? _pulseAnimation.value : 1.0,
+            child: Text("$minutes:$seconds", style: timerStyle),
+          );
+        },
+      );
     }
 
     return SizedBox(
-      width: 240,
+      width: 280,
       child: TextField(
         textAlign: TextAlign.center,
         style: timerStyle,
