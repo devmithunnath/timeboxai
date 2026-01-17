@@ -36,9 +36,9 @@ void main(List<String> args) async {
   await AnalyticsService().init();
 
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(600, 540),
-    minimumSize: Size(600, 540),
-    maximumSize: Size(600, 540),
+    size: Size(600, 580),
+    minimumSize: Size(600, 580),
+    maximumSize: Size(600, 580),
     center: true,
     backgroundColor: Colors.transparent,
     skipTaskbar: false,

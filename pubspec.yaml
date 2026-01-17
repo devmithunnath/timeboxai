@@ -41,6 +41,7 @@ dependencies:
   posthog_flutter: ^4.0.1
   envied: ^0.5.4+1
   desktop_multi_window: ^0.2.0
+  flutter_svg: ^2.0.10+1
 
 dev_dependencies:
   flutter_test:
