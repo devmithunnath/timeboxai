@@ -137,4 +137,64 @@ class AnalyticsService {
       }
     }
   }
+
+  void trackOnboardingStarted() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING STARTED');
+    }
+    trackEvent('onboarding_started');
+  }
+
+  void trackOnboardingWelcomeViewed() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING WELCOME VIEWED');
+    }
+    trackEvent('onboarding_welcome_viewed');
+  }
+
+  void trackOnboardingNameEntered(String name) {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING NAME ENTERED: $name');
+    }
+    trackEvent(
+      'onboarding_name_entered',
+      properties: {'name_length': name.length},
+    );
+  }
+
+  void trackOnboardingPresetAdded(int seconds) {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING PRESET ADDED: ${seconds}s');
+    }
+    trackEvent(
+      'onboarding_preset_added',
+      properties: {
+        'duration_seconds': seconds,
+        'duration_minutes': seconds ~/ 60,
+      },
+    );
+  }
+
+  void trackOnboardingPresetRemoved(int seconds) {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING PRESET REMOVED: ${seconds}s');
+    }
+    trackEvent(
+      'onboarding_preset_removed',
+      properties: {
+        'duration_seconds': seconds,
+        'duration_minutes': seconds ~/ 60,
+      },
+    );
+  }
+
+  void trackOnboardingCompleted(int presetCount) {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING COMPLETED with $presetCount presets');
+    }
+    trackEvent(
+      'onboarding_completed',
+      properties: {'preset_count': presetCount},
+    );
+  }
 }

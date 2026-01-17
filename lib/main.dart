@@ -1,39 +1,21 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'providers/timer_provider.dart';
 import 'services/analytics_service.dart';
+import 'services/onboarding_service.dart';
 import 'ui/home_screen.dart';
+import 'ui/onboarding_screen.dart';
 import 'ui/theme.dart';
-import 'ui/settings_screen.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Check if this is a sub-window (settings window)
-  if (args.firstOrNull == 'multi_window') {
-    final windowId = int.parse(args[1]);
-    final argument =
-        args.length > 2
-            ? jsonDecode(args[2]) as Map<String, dynamic>
-            : <String, dynamic>{};
-
-    runApp(
-      SettingsWindowApp(
-        windowController: WindowController.fromWindowId(windowId),
-        args: argument,
-      ),
-    );
-    return;
-  }
-
-  // Main window initialization
   await windowManager.ensureInitialized();
-
-  // Initialize PostHog analytics
   await AnalyticsService().init();
+
+  final onboardingService = OnboardingService();
+  await onboardingService.init();
 
   WindowOptions windowOptions = const WindowOptions(
     size: Size(600, 580),
@@ -43,7 +25,7 @@ void main(List<String> args) async {
     backgroundColor: Colors.transparent,
     skipTaskbar: false,
     titleBarStyle: TitleBarStyle.hidden,
-    title: "Timebox",
+    title: "PipBox",
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
@@ -51,56 +33,52 @@ void main(List<String> args) async {
     await windowManager.focus();
   });
 
-  runApp(const TimeboxApp());
+  runApp(PipBoxApp(onboardingService: onboardingService));
 }
 
-class TimeboxApp extends StatelessWidget {
-  const TimeboxApp({super.key});
+class PipBoxApp extends StatefulWidget {
+  final OnboardingService onboardingService;
+
+  const PipBoxApp({super.key, required this.onboardingService});
+
+  @override
+  State<PipBoxApp> createState() => _PipBoxAppState();
+}
+
+class _PipBoxAppState extends State<PipBoxApp> {
+  late bool _showOnboarding;
+
+  @override
+  void initState() {
+    super.initState();
+    _showOnboarding = !widget.onboardingService.hasCompletedOnboarding;
+  }
+
+  void _onOnboardingComplete() {
+    setState(() {
+      _showOnboarding = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => TimerProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => TimerProvider()),
+        ChangeNotifierProvider.value(value: widget.onboardingService),
+      ],
       child: MaterialApp(
-        title: 'Timebox',
+        title: 'PipBox',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
-        home: const HomeScreen(),
+        home:
+            _showOnboarding
+                ? OnboardingScreen(
+                  onboardingService: widget.onboardingService,
+                  onComplete: _onOnboardingComplete,
+                )
+                : const HomeScreen(),
       ),
     );
   }
-}
-
-/// Separate app for the settings window
-class SettingsWindowApp extends StatelessWidget {
-  final WindowController windowController;
-  final Map<String, dynamic> args;
-
-  const SettingsWindowApp({
-    super.key,
-    required this.windowController,
-    required this.args,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Settings',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const SettingsScreen(),
-    );
-  }
-}
-
-/// Helper function to open settings in a new window
-Future<void> openSettingsWindow() async {
-  final window = await DesktopMultiWindow.createWindow(
-    jsonEncode({'window': 'settings'}),
-  );
-
-  window
-    ..setFrame(const Offset(100, 100) & const Size(400, 500))
-    ..setTitle('Settings')
-    ..show();
 }
