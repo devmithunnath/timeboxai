@@ -9,4 +9,13 @@ abstract class Env {
 
   @EnviedField(varName: 'POSTHOG_HOST')
   static String posthogHost = _Env.posthogHost;
+
+  @EnviedField(varName: 'SUPABASE_URL')
+  static String supabaseUrl = _Env.supabaseUrl;
+
+  @EnviedField(varName: 'SUPABASE_ANON_KEY')
+  static String supabaseAnonKey = _Env.supabaseAnonKey;
+
+  @EnviedField(varName: 'SENTRY_DSN')
+  static String sentryDsn = _Env.sentryDsn;
 }

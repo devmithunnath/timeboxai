@@ -59,10 +59,14 @@ class AnalyticsService {
   }
 
   /// Track timer started
-  void trackTimerStarted(int durationSeconds) {
+  void trackTimerStarted({
+    required int durationSeconds,
+    required String platform,
+    required String sessionSource,
+  }) {
     if (kDebugMode) {
       print(
-        '[Analytics] >>> TIMER STARTED: ${durationSeconds}s (${durationSeconds ~/ 60} min)',
+        '[Analytics] >>> TIMER STARTED: ${durationSeconds}s, Platform: $platform, Source: $sessionSource',
       );
     }
     trackEvent(
@@ -70,6 +74,8 @@ class AnalyticsService {
       properties: {
         'duration_seconds': durationSeconds,
         'duration_minutes': durationSeconds ~/ 60,
+        'platform': platform,
+        'session_source': sessionSource,
       },
     );
   }
@@ -86,25 +92,45 @@ class AnalyticsService {
   }
 
   /// Track timer stopped/reset
-  void trackTimerStopped() {
+  void trackTimerStopped({
+    required int durationSeconds,
+    required String completionReason,
+    required int pauseCount,
+    required bool wasPaused,
+  }) {
     if (kDebugMode) {
-      print('[Analytics] >>> TIMER STOPPED');
+      print('[Analytics] >>> TIMER STOPPED. Reason: $completionReason');
     }
-    trackEvent('timer_stopped');
+    trackEvent(
+      'timer_stopped',
+      properties: {
+        'duration_seconds': durationSeconds,
+        'duration_minutes': durationSeconds ~/ 60,
+        'completion_reason': completionReason,
+        'pause_count': pauseCount,
+        'was_paused': wasPaused,
+      },
+    );
   }
 
   /// Track timer completed
-  void trackTimerCompleted(int durationSeconds) {
+  void trackTimerCompleted({
+    required int durationSeconds,
+    required String completionReason,
+    required int pauseCount,
+    required bool wasPaused,
+  }) {
     if (kDebugMode) {
-      print(
-        '[Analytics] >>> TIMER COMPLETED: ${durationSeconds}s (${durationSeconds ~/ 60} min)',
-      );
+      print('[Analytics] >>> TIMER COMPLETED: ${durationSeconds}s');
     }
     trackEvent(
       'timer_completed',
       properties: {
         'duration_seconds': durationSeconds,
         'duration_minutes': durationSeconds ~/ 60,
+        'completion_reason': completionReason,
+        'pause_count': pauseCount,
+        'was_paused': wasPaused,
       },
     );
   }

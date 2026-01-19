@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'supabase_service.dart';
 
 class OnboardingService extends ChangeNotifier {
   static const String _hasCompletedOnboardingKey = 'has_completed_onboarding';
@@ -60,6 +61,12 @@ class OnboardingService extends ChangeNotifier {
   Future<void> completeOnboarding() async {
     _hasCompletedOnboarding = true;
     await _prefs?.setBool(_hasCompletedOnboardingKey, true);
+
+    // Create user in Supabase
+    if (_userName.isNotEmpty) {
+      await SupabaseService().createUser(_userName);
+    }
+
     notifyListeners();
   }
 
