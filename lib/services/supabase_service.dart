@@ -99,6 +99,7 @@ class SupabaseService {
     required String completionReason,
     required bool wasPaused,
     required int pauseCount,
+    required bool notificationDisplayed,
   }) async {
     if (!isInitialized) return;
 
@@ -112,6 +113,7 @@ class SupabaseService {
             'end_time': DateTime.now().toIso8601String(),
             'was_paused': wasPaused,
             'pause_count': pauseCount,
+            'notification_displayed': notificationDisplayed,
           })
           .eq('id', sessionId);
 

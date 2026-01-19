@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS timer_sessions (
 
   was_paused BOOLEAN DEFAULT FALSE,
   pause_count SMALLINT DEFAULT 0,
+  notification_displayed BOOLEAN DEFAULT FALSE,
 
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

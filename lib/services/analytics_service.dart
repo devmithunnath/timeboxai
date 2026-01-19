@@ -97,6 +97,7 @@ class AnalyticsService {
     required String completionReason,
     required int pauseCount,
     required bool wasPaused,
+    required bool notificationDisplayed,
   }) {
     if (kDebugMode) {
       print('[Analytics] >>> TIMER STOPPED. Reason: $completionReason');
@@ -109,6 +110,7 @@ class AnalyticsService {
         'completion_reason': completionReason,
         'pause_count': pauseCount,
         'was_paused': wasPaused,
+        'notification_displayed': notificationDisplayed,
       },
     );
   }
@@ -119,6 +121,7 @@ class AnalyticsService {
     required String completionReason,
     required int pauseCount,
     required bool wasPaused,
+    required bool notificationDisplayed,
   }) {
     if (kDebugMode) {
       print('[Analytics] >>> TIMER COMPLETED: ${durationSeconds}s');
@@ -131,6 +134,7 @@ class AnalyticsService {
         'completion_reason': completionReason,
         'pause_count': pauseCount,
         'was_paused': wasPaused,
+        'notification_displayed': notificationDisplayed,
       },
     );
   }

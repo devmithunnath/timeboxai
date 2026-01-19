@@ -122,3 +122,11 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+/.idea/copilot.data.migration.ask2agent.xml
+/.idea/libraries/Dart_Packages.xml
+/.idea/caches/deviceStreaming.xml
+/.idea/libraries/Flutter_Plugins.xml
+/.idea/material_theme_project_new.xml
+/.idea/vcs.xml
+/.idea/workspace.xml
+.DS_Store

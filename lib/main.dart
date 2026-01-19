@@ -5,6 +5,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'env/env.dart';
 import 'providers/timer_provider.dart';
 import 'services/analytics_service.dart';
+import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/supabase_service.dart';
 import 'ui/home_screen.dart';
@@ -25,6 +26,7 @@ void main(List<String> args) async {
       await windowManager.ensureInitialized();
       await AnalyticsService().init();
       await SupabaseService().init();
+      await NotificationService().init();
 
       final onboardingService = OnboardingService();
       await onboardingService.init();

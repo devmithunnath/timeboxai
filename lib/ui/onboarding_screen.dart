@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/analytics_service.dart';
 import '../services/onboarding_service.dart';
+import '../services/notification_service.dart';
 import 'theme.dart';
 import 'widgets/media_player_control.dart';
 
@@ -115,10 +116,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     } else if (_currentStep == 1) {
       if (_customPresets.isNotEmpty) {
         widget.onboardingService.setPresetTimers(_customPresets);
-        widget.onboardingService.completeOnboarding();
-        AnalyticsService().trackOnboardingCompleted(_customPresets.length);
-        widget.onComplete();
+        setState(() => _currentStep = 2);
       }
+    } else if (_currentStep == 2) {
+      widget.onboardingService.completeOnboarding();
+      AnalyticsService().trackOnboardingCompleted(_customPresets.length);
+      widget.onComplete();
     }
   }
 
@@ -149,6 +152,20 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       _customPresets.remove(seconds);
     });
     AnalyticsService().trackOnboardingPresetRemoved(seconds);
+  }
+
+  Future<void> _enableNotifications() async {
+    final result = await NotificationService().requestPermissions();
+    debugPrint('Notification permission result: $result');
+
+    // Show a test notification to trigger macOS permission prompt if needed
+    await NotificationService().showNotification(
+      id: 1,
+      title: 'Notifications Enabled!',
+      body: 'You will be notified when your timer completes.',
+    );
+
+    _nextStep();
   }
 
   String _formatDuration(int totalSeconds) {
@@ -228,10 +245,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       builder: (context, child) {
         return Opacity(
           opacity: _contentFadeAnimation.value,
-          child: _currentStep == 0 ? _buildNameStep() : _buildPresetsStep(),
+          child: _buildCurrentStep(),
         );
       },
     );
+  }
+
+  Widget _buildCurrentStep() {
+    switch (_currentStep) {
+      case 0:
+        return _buildNameStep();
+      case 1:
+        return _buildPresetsStep();
+      case 2:
+        return _buildNotificationStep();
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Widget _buildNameStep() {
@@ -322,8 +352,131 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           const Spacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_buildPreviousButton(), _buildStartButton()],
+            children: [_buildPreviousButton(), _buildNextButton(text: 'Next')],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationStep() {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.notifications_active_rounded,
+              size: 64,
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'Stay on Track',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Rounded',
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Get notified when your timer completes,\neven if the app is in the background.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              fontFamily: '.SF Pro Text',
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
+              height: 1.4,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: _nextStep,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Text(
+                    'Maybe Later',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: MediaPlayerStyles.mutedColor,
+                      fontFamily: '.SF Pro Text',
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: _enableNotifications,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        MediaPlayerStyles.primaryColorLight,
+                        MediaPlayerStyles.primaryColor,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: MediaPlayerStyles.primaryColor.withValues(
+                          alpha: 0.3,
+                        ),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Enable',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          fontFamily: '.SF Pro Text',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.notifications_active_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -528,8 +681,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildNextButton() {
-    final isEnabled = _nameController.text.trim().isNotEmpty;
+  Widget _buildNextButton({String text = 'Next'}) {
+    final isEnabled =
+        _currentStep == 0
+            ? _nameController.text.trim().isNotEmpty
+            : _customPresets.isNotEmpty;
 
     return GestureDetector(
       onTap: isEnabled ? _nextStep : null,
@@ -559,9 +715,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Next',
-                style: TextStyle(
+              Text(
+                text,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -610,59 +766,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStartButton() {
-    final isEnabled = _customPresets.isNotEmpty;
-
-    return GestureDetector(
-      onTap: isEnabled ? _nextStep : null,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 200),
-        opacity: isEnabled ? 1.0 : 0.4,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                MediaPlayerStyles.primaryColorLight,
-                MediaPlayerStyles.primaryColor,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: MediaPlayerStyles.primaryColor.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Start',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  fontFamily: '.SF Pro Text',
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-            ],
-          ),
         ),
       ),
     );
