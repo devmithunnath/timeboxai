@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -54,11 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: SettingsButton(onPressed: _openSettings),
-                    ),
+                    if (kDebugMode)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: SettingsButton(onPressed: _openSettings),
+                      ),
 
                     Positioned(
                       top: 48,

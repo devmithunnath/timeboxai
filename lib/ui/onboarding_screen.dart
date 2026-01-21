@@ -39,6 +39,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   bool _showWelcome = true;
   bool _showContent = false;
+  int _countdownValue = 5;
+  Timer? _countdownTimer;
 
   @override
   void initState() {
@@ -46,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _customPresets = List.from(widget.onboardingService.presetTimers);
 
     _welcomeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     _welcomeFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -80,8 +82,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _welcomeController.forward();
     AnalyticsService().trackOnboardingWelcomeViewed();
 
-    Timer(const Duration(seconds: 5), () {
-      if (mounted) {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _countdownValue--;
+      });
+
+      if (_countdownValue <= 0) {
+        timer.cancel();
         _welcomeController.reverse().then((_) {
           if (mounted) {
             setState(() {
@@ -97,6 +109,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _nameController.dispose();
     _minutesController.dispose();
     _secondsController.dispose();
@@ -119,6 +132,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         setState(() => _currentStep = 2);
       }
     } else if (_currentStep == 2) {
+      setState(() => _currentStep = 3);
+    } else if (_currentStep == 3) {
       widget.onboardingService.completeOnboarding();
       AnalyticsService().trackOnboardingCompleted(_customPresets.length);
       widget.onComplete();
@@ -191,49 +206,92 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return AnimatedBuilder(
       animation: _welcomeController,
       builder: (context, child) {
-        return Center(
-          child: Opacity(
-            opacity: _welcomeFadeAnimation.value,
-            child: Transform.scale(
-              scale: _welcomeScaleAnimation.value,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Welcome to',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w400,
-                      fontFamily: '.SF Pro Text',
-                      color: MediaPlayerStyles.mutedColor,
-                      letterSpacing: 1,
-                    ),
+        return Stack(
+          children: [
+            Center(
+              child: Opacity(
+                opacity: _welcomeFadeAnimation.value,
+                child: Transform.scale(
+                  scale: _welcomeScaleAnimation.value,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Welcome to',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: '.SF Pro Text',
+                          color: MediaPlayerStyles.mutedColor,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'PipBox',
+                        style: TextStyle(
+                          fontSize: 72,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: '.SF Pro Rounded',
+                          color: AppTheme.accent,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      SvgPicture.asset(
+                        'assets/images/character-orange-crop.svg',
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.contain,
+                        placeholderBuilder:
+                            (context) =>
+                                const SizedBox(width: 120, height: 120),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'PipBox',
-                    style: TextStyle(
-                      fontSize: 72,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: '.SF Pro Rounded',
-                      color: AppTheme.accent,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  SvgPicture.asset(
-                    'assets/images/character-orange-crop.svg',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
-                    placeholderBuilder:
-                        (context) => const SizedBox(width: 120, height: 120),
-                  ),
-                  const SizedBox(height: 32),
-                ],
+                ),
               ),
             ),
-          ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Opacity(
+                opacity: _welcomeFadeAnimation.value,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: MediaPlayerStyles.mutedColor.withValues(
+                        alpha: 0.2,
+                      ),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    '$_countdownValue',
+                    style: TextStyle(
+                      fontFamily: '.SF Pro Rounded',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: MediaPlayerStyles.mutedColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 40,
+              left: 40,
+              child: Opacity(
+                opacity: _welcomeFadeAnimation.value,
+                child: _buildProgressDots(0),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -259,9 +317,82 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         return _buildPresetsStep();
       case 2:
         return _buildNotificationStep();
+      case 3:
+        return _buildAntExplanationStep();
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildCommonExplanationScreen({
+    required Widget content,
+    required int stepIndex,
+    String nextLabel = 'Next',
+    String title = 'The Pomodoro technique',
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Rounded',
+              color: Color(0xFF2D2D2D),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(child: SingleChildScrollView(child: content)),
+          const SizedBox(height: 20),
+          Text(
+            'Stay focused... Small steps matter.',
+            style: TextStyle(
+              fontSize: 14,
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildProgressDots(stepIndex),
+              stepIndex == 1
+                  ? _buildNextButton(text: nextLabel)
+                  : Row(
+                    children: [
+                      _buildPreviousButton(),
+                      const SizedBox(width: 16),
+                      _buildNextButton(text: nextLabel),
+                    ],
+                  ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressDots(int activeIndex) {
+    return Row(
+      children: List.generate(5, (index) {
+        return Container(
+          width: 8,
+          height: 8,
+          margin: const EdgeInsets.only(right: 6),
+          decoration: BoxDecoration(
+            color:
+                index == activeIndex
+                    ? AppTheme.accent
+                    : AppTheme.accent.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+        );
+      }),
+    );
   }
 
   Widget _buildNameStep() {
@@ -269,52 +400,67 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       padding: const EdgeInsets.all(40),
       child: Column(
         children: [
-          const Spacer(flex: 2),
-          Text(
-            "What do I call you?",
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              fontFamily: '.SF Pro Rounded',
-              color: AppTheme.accent,
-            ),
-          ),
-          const SizedBox(height: 40),
-          SizedBox(
-            width: 300,
-            child: TextField(
-              controller: _nameController,
-              textAlign: TextAlign.center,
-              autofocus: true,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
-                fontFamily: '.SF Pro Text',
-                color: MediaPlayerStyles.mutedColor,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Enter your name',
-                hintStyle: TextStyle(
-                  color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.4),
-                  fontSize: 24,
-                  fontWeight: FontWeight.w400,
-                ),
-                border: InputBorder.none,
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                    color: MediaPlayerStyles.subtleBorder,
-                    width: 2,
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "What do I call you?",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: '.SF Pro Rounded',
+                      color: AppTheme.accent,
+                    ),
                   ),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: AppTheme.accent, width: 2),
-                ),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: 300,
+                    child: TextField(
+                      controller: _nameController,
+                      textAlign: TextAlign.center,
+                      autofocus: true,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: '.SF Pro Text',
+                        color: MediaPlayerStyles.mutedColor,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Enter your name',
+                        hintStyle: TextStyle(
+                          color: MediaPlayerStyles.mutedColor.withValues(
+                            alpha: 0.4,
+                          ),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: MediaPlayerStyles.subtleBorder,
+                            width: 2,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: AppTheme.accent,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (_) => _nextStep(),
+                    ),
+                  ),
+                ],
               ),
-              onSubmitted: (_) => _nextStep(),
             ),
           ),
-          const Spacer(flex: 3),
-          Align(alignment: Alignment.bottomRight, child: _buildNextButton()),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [_buildProgressDots(1), _buildNextButton()],
+          ),
         ],
       ),
     );
@@ -352,7 +498,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           const Spacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_buildPreviousButton(), _buildNextButton(text: 'Next')],
+            children: [
+              _buildProgressDots(2),
+              Row(
+                children: [
+                  _buildPreviousButton(),
+                  const SizedBox(width: 16),
+                  _buildNextButton(text: 'Next'),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -403,60 +558,59 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              GestureDetector(
-                onTap: _nextStep,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Text(
-                    'Maybe Later',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: MediaPlayerStyles.mutedColor,
-                      fontFamily: '.SF Pro Text',
-                    ),
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: _enableNotifications,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        MediaPlayerStyles.primaryColorLight,
-                        MediaPlayerStyles.primaryColor,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: MediaPlayerStyles.primaryColor.withValues(
-                          alpha: 0.3,
-                        ),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+              _buildProgressDots(3),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: _nextStep,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
                       ),
-                    ],
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: Text(
+                        'Maybe Later',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: MediaPlayerStyles.mutedColor,
+                          fontFamily: '.SF Pro Text',
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Enable',
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _enableNotifications,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 28,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppTheme.accent,
+                            AppTheme.accent.withValues(alpha: 0.8),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.accent.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'Enable Notifications',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -464,19 +618,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           fontFamily: '.SF Pro Text',
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.notifications_active_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );
@@ -767,6 +914,99 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAntExplanationStep() {
+    return _buildCommonExplanationScreen(
+      stepIndex: 4,
+      nextLabel: 'Start focusing',
+      title: 'The ant is your progress',
+      content: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned(
+                        bottom: 20,
+                        left: 20,
+                        right: 20,
+                        child: Container(
+                          height: 2,
+                          color: AppTheme.accent.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 16,
+                        right: 20,
+                        child: CircleAvatar(
+                          radius: 4,
+                          backgroundColor: AppTheme.accent,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 16,
+                        left: 20,
+                        child: Icon(
+                          Icons.flag_rounded,
+                          size: 16,
+                          color: AppTheme.accent,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 16,
+                        child: SvgPicture.asset(
+                          'assets/images/character-orange-crop.svg',
+                          width: 60,
+                          height: 60,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Your progress is visual',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2D2D2D),
+                    fontFamily: '.SF Pro Rounded',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'As the timer runs, your ant moves forward.\nWhen the journey ends, the session is complete.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                    color: MediaPlayerStyles.mutedColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
