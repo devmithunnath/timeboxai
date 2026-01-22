@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'env/env.dart';
 import 'providers/timer_provider.dart';
 import 'services/analytics_service.dart';
@@ -14,6 +15,9 @@ import 'ui/theme.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize EasyLocalization before other services
+  await EasyLocalization.ensureInitialized();
 
   await SentryFlutter.init(
     (options) {
@@ -47,7 +51,40 @@ void main(List<String> args) async {
         await windowManager.focus();
       });
 
-      runApp(PipBoxApp(onboardingService: onboardingService));
+      runApp(
+        EasyLocalization(
+          supportedLocales: const [
+            Locale('en'),
+            Locale('zh', 'Hans'),
+            Locale('zh', 'Hant'),
+            Locale('ja'),
+            Locale('de'),
+            Locale('fr'),
+            Locale('es'),
+            Locale('es', 'MX'),
+            Locale('pt', 'BR'),
+            Locale('pt', 'PT'),
+            Locale('hi'),
+            Locale('ar'),
+            Locale('ko'),
+            Locale('it'),
+            Locale('nl'),
+            Locale('ru'),
+            Locale('tr'),
+            Locale('sv'),
+            Locale('pl'),
+            Locale('id'),
+            Locale('th'),
+            Locale('vi'),
+          ],
+          path: 'assets/translations',
+          fallbackLocale: const Locale('en'),
+          startLocale: const Locale(
+            'en',
+          ), // Default to English for clean install
+          child: PipBoxApp(onboardingService: onboardingService),
+        ),
+      );
     },
   );
 }
@@ -87,6 +124,12 @@ class _PipBoxAppState extends State<PipBoxApp> {
         title: 'PipBox',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
+
+        // Localization configuration
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+
         home:
             _showOnboarding
                 ? OnboardingScreen(

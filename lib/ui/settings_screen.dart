@@ -1,7 +1,9 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/onboarding_service.dart';
+import 'language_selector_screen.dart';
 import 'theme.dart';
 import 'widgets/section_header.dart';
 import 'widgets/media_player_control.dart';
@@ -10,6 +12,40 @@ class SettingsScreen extends StatelessWidget {
   final VoidCallback onClose;
 
   const SettingsScreen({super.key, required this.onClose});
+
+  String _getCurrentLanguageName(BuildContext context) {
+    final locale = context.locale;
+    final Map<String, String> languageNames = {
+      'en': 'English',
+      'zh_Hans': '简体中文',
+      'zh_Hant': '繁體中文',
+      'ja': '日本語',
+      'de': 'Deutsch',
+      'fr': 'Français',
+      'es': 'Español',
+      'es_MX': 'Español (México)',
+      'pt_BR': 'Português (Brasil)',
+      'pt_PT': 'Português (Portugal)',
+      'hi': 'हिन्दी',
+      'ar': 'العربية',
+      'ko': '한국어',
+      'it': 'Italiano',
+      'nl': 'Nederlands',
+      'ru': 'Русский',
+      'tr': 'Türkçe',
+      'sv': 'Svenska',
+      'pl': 'Polski',
+      'id': 'Bahasa Indonesia',
+      'th': 'ไทย',
+      'vi': 'Tiếng Việt',
+    };
+
+    final key =
+        locale.countryCode != null
+            ? '${locale.languageCode}_${locale.countryCode}'
+            : locale.languageCode;
+    return languageNames[key] ?? 'English';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +60,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 Center(
                   child: Text(
-                    'Settings',
+                    'settings.title'.tr(),
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
@@ -42,6 +78,21 @@ class SettingsScreen extends StatelessWidget {
                   title: 'Theme',
                   subtitle: 'Default',
                   onTap: () {},
+                ),
+                const SizedBox(height: 8),
+                _buildSettingsTile(
+                  context: context,
+                  icon: Icons.language_rounded,
+                  title: 'settings.language'.tr(),
+                  subtitle: _getCurrentLanguageName(context),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LanguageSelectorScreen(),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 24),
@@ -105,6 +156,7 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Widget _buildSettingsTile({
+    BuildContext? context,
     required IconData icon,
     required String title,
     String? subtitle,

@@ -227,4 +227,105 @@ class AnalyticsService {
       properties: {'preset_count': presetCount},
     );
   }
+
+  void trackOnboardingLanguageViewed() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING LANGUAGE SCREEN VIEWED');
+    }
+    trackEvent('onboarding_language_viewed');
+  }
+
+  void trackOnboardingLanguageSelected(
+    String languageCode,
+    String languageName,
+  ) {
+    if (kDebugMode) {
+      print(
+        '[Analytics] >>> ONBOARDING LANGUAGE SELECTED: $languageName ($languageCode)',
+      );
+    }
+    trackEvent(
+      'onboarding_language_selected',
+      properties: {
+        'language_code': languageCode,
+        'language_name': languageName,
+      },
+    );
+  }
 }
+
+  void trackOnboardingNotificationStepViewed() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING NOTIFICATION STEP VIEWED');
+    }
+    trackEvent('onboarding_notification_step_viewed');
+  }
+
+  void trackOnboardingNotificationPermissionGranted() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING NOTIFICATION PERMISSION GRANTED');
+    }
+    trackEvent('onboarding_notification_permission_granted');
+  }
+
+  void trackOnboardingNotificationPermissionDenied() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING NOTIFICATION PERMISSION DENIED');
+    }
+    trackEvent('onboarding_notification_permission_denied');
+  }
+
+  void trackOnboardingNotificationSkipped() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING NOTIFICATION SKIPPED');
+    }
+    trackEvent('onboarding_notification_skipped');
+  }
+
+  void trackOnboardingAntExplanationViewed() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING ANT EXPLANATION VIEWED');
+    }
+    trackEvent('onboarding_ant_explanation_viewed');
+  }
+
+  void trackOnboardingStepNavigation({
+    required int fromStep,
+    required int toStep,
+    required String direction,
+  }) {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING NAVIGATION: Step $fromStep → $toStep ($direction)');
+    }
+    trackEvent(
+      'onboarding_step_navigation',
+      properties: {
+        'from_step': fromStep,
+        'to_step': toStep,
+        'direction': direction,
+      },
+    );
+  }
+
+  void trackSettingsOpened() {
+    if (kDebugMode) {
+      print('[Analytics] >>> SETTINGS OPENED');
+    }
+    trackEvent('settings_opened');
+  }
+
+  void trackSettingsLanguageChanged({
+    required String fromLanguage,
+    required String toLanguage,
+  }) {
+    if (kDebugMode) {
+      print('[Analytics] >>> SETTINGS LANGUAGE CHANGED: $fromLanguage → $toLanguage');
+    }
+    trackEvent(
+      'settings_language_changed',
+      properties: {
+        'from_language': fromLanguage,
+        'to_language': toLanguage,
+      },
+    );
+  }

@@ -2,9 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../services/analytics_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/notification_service.dart';
+import '../services/localization_service.dart';
+import '../services/supabase_service.dart';
 import 'theme.dart';
 import 'widgets/media_player_control.dart';
 
@@ -29,6 +32,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   final TextEditingController _minutesController = TextEditingController();
   final TextEditingController _secondsController = TextEditingController();
   List<int> _customPresets = [];
+  Locale? _selectedLanguage;
+  bool _hasTrackedLanguageView = false;
 
   late AnimationController _welcomeController;
   late Animation<double> _welcomeFadeAnimation;
@@ -120,28 +125,61 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   void _nextStep() {
     if (_currentStep == 0) {
+      // Language selection step - always allow continuing
+      if (_selectedLanguage != null) {
+        final languages = LocalizationService().getSupportedLanguages();
+        final selectedLang = languages.firstWhere(
+          (lang) => lang.locale == _selectedLanguage,
+          orElse: () => languages.first,
+        );
+
+        // Track analytics
+        AnalyticsService().trackOnboardingLanguageSelected(
+          _selectedLanguage!.toString(),
+          selectedLang.nativeName,
+        );
+
+        // Set locale and save
+        context.setLocale(_selectedLanguage!);
+        LocalizationService().saveLocale(_selectedLanguage!);
+
+        // Save to Supabase
+        SupabaseService().updateUserLanguage(_selectedLanguage!.toString());
+      }
+      setState(() => _currentStep = 1);
+    } else if (_currentStep == 1) {
       if (_nameController.text.trim().isNotEmpty) {
         final name = _nameController.text.trim();
         widget.onboardingService.setUserName(name);
         AnalyticsService().trackOnboardingNameEntered(name);
-        setState(() => _currentStep = 1);
-      }
-    } else if (_currentStep == 1) {
-      if (_customPresets.isNotEmpty) {
-        widget.onboardingService.setPresetTimers(_customPresets);
         setState(() => _currentStep = 2);
       }
     } else if (_currentStep == 2) {
-      setState(() => _currentStep = 3);
+      if (_customPresets.isNotEmpty) {
+        widget.onboardingService.setPresetTimers(_customPresets);
+        setState(() => _currentStep = 3);
+      }
     } else if (_currentStep == 3) {
+      setState(() => _currentStep = 4);
+    } else if (_currentStep == 4) {
       widget.onboardingService.completeOnboarding();
       AnalyticsService().trackOnboardingCompleted(_customPresets.length);
+      
+      // Update Supabase with completion timestamp and presets
+      SupabaseService().updateOnboardingCompleted();
+      SupabaseService().updatePresetTimers(_customPresets);
+      
       widget.onComplete();
     }
   }
 
   void _previousStep() {
     if (_currentStep > 0) {
+      AnalyticsService().trackOnboardingStepNavigation(
+        fromStep: _currentStep,
+        toStep: _currentStep - 1,
+        direction: 'back',
+      );
       setState(() => _currentStep = _currentStep - 1);
     }
   }
@@ -312,12 +350,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget _buildCurrentStep() {
     switch (_currentStep) {
       case 0:
-        return _buildNameStep();
+        return _buildLanguageStep();
       case 1:
-        return _buildPresetsStep();
+        return _buildNameStep();
       case 2:
-        return _buildNotificationStep();
+        return _buildPresetsStep();
       case 3:
+        return _buildNotificationStep();
+      case 4:
         return _buildAntExplanationStep();
       default:
         return const SizedBox.shrink();
@@ -378,7 +418,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Widget _buildProgressDots(int activeIndex) {
     return Row(
-      children: List.generate(5, (index) {
+      children: List.generate(6, (index) {
         return Container(
           width: 8,
           height: 8,
@@ -406,7 +446,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "What do I call you?",
+                    "onboarding.whatToCallYou".tr(),
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
@@ -428,7 +468,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         color: MediaPlayerStyles.mutedColor,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Enter your name',
+                        hintText: 'onboarding.enterName'.tr(),
                         hintStyle: TextStyle(
                           color: MediaPlayerStyles.mutedColor.withValues(
                             alpha: 0.4,
@@ -459,7 +499,87 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_buildProgressDots(1), _buildNextButton()],
+            children: [_buildProgressDots(2), _buildNextButton()],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageStep() {
+    final languages = LocalizationService().getSupportedLanguages();
+    _selectedLanguage ??= context.locale;
+
+    final selectedLanguage = languages.firstWhere(
+      (lang) => lang.locale == _selectedLanguage,
+      orElse: () => languages.first,
+    );
+
+    // Track analytics once when language screen is first viewed
+    if (!_hasTrackedLanguageView) {
+      _hasTrackedLanguageView = true;
+      AnalyticsService().trackOnboardingLanguageViewed();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'onboarding.chooseLanguage'.tr(),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: '.SF Pro Rounded',
+                      color: AppTheme.accent,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'onboarding.changeAnytime'.tr(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: '.SF Pro Text',
+                      color: MediaPlayerStyles.mutedColor.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: 320,
+                    child: _LanguageDropdown(
+                      languages: languages,
+                      selectedLanguage: selectedLanguage,
+                      onLanguageSelected: (locale) {
+                        setState(() {
+                          _selectedLanguage = locale;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildProgressDots(1),
+              Row(
+                children: [
+                  _buildPreviousButton(),
+                  const SizedBox(width: 16),
+                  _buildNextButton(text: 'Next'),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -473,7 +593,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         children: [
           const Spacer(),
           Text(
-            'Set Your Timer Presets',
+            'onboarding.setPresets'.tr(),
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w600,
@@ -483,7 +603,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            'Add your favorite focus durations',
+            'onboarding.addFavoriteDurations'.tr(),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
@@ -499,7 +619,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildProgressDots(2),
+              _buildProgressDots(3),
               Row(
                 children: [
                   _buildPreviousButton(),
@@ -558,7 +678,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildProgressDots(3),
+              _buildProgressDots(4),
               Row(
                 children: [
                   GestureDetector(
@@ -831,8 +951,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget _buildNextButton({String text = 'Next'}) {
     final isEnabled =
         _currentStep == 0
+            ? true // Language step - always enabled
+            : _currentStep == 1
             ? _nameController.text.trim().isNotEmpty
-            : _customPresets.isNotEmpty;
+            : _currentStep == 2
+            ? _customPresets.isNotEmpty
+            : true;
 
     return GestureDetector(
       onTap: isEnabled ? _nextStep : null,
@@ -920,7 +1044,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Widget _buildAntExplanationStep() {
     return _buildCommonExplanationScreen(
-      stepIndex: 4,
+      stepIndex: 5,
       nextLabel: 'Start focusing',
       title: 'The ant is your progress',
       content: Column(
@@ -1008,6 +1132,271 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+// Minimal, modern language selector with type-ahead search
+class _LanguageDropdown extends StatefulWidget {
+  final List<LocaleInfo> languages;
+  final LocaleInfo selectedLanguage;
+  final Function(Locale) onLanguageSelected;
+
+  const _LanguageDropdown({
+    required this.languages,
+    required this.selectedLanguage,
+    required this.onLanguageSelected,
+  });
+
+  @override
+  State<_LanguageDropdown> createState() => _LanguageDropdownState();
+}
+
+class _LanguageDropdownState extends State<_LanguageDropdown> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  bool _isExpanded = false;
+  List<LocaleInfo> _filteredLanguages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredLanguages = widget.languages;
+    _searchController.addListener(_filterLanguages);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _filterLanguages() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredLanguages = widget.languages;
+      } else {
+        _filteredLanguages =
+            widget.languages.where((lang) {
+              return lang.nativeName.toLowerCase().contains(query) ||
+                  lang.locale.languageCode.toLowerCase().contains(query);
+            }).toList();
+      }
+    });
+  }
+
+  void _toggleDropdown() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _focusNode.requestFocus();
+      } else {
+        _focusNode.unfocus();
+        _searchController.clear();
+      }
+    });
+  }
+
+  void _selectLanguage(LocaleInfo language) {
+    widget.onLanguageSelected(language.locale);
+    setState(() {
+      _isExpanded = false;
+      _searchController.clear();
+    });
+    _focusNode.unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Selected language display (like the name field)
+        GestureDetector(
+          onTap: _toggleDropdown,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color:
+                      _isExpanded
+                          ? AppTheme.accent
+                          : MediaPlayerStyles.subtleBorder,
+                  width: 2,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  widget.selectedLanguage.nativeName,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: '.SF Pro Text',
+                    color: MediaPlayerStyles.mutedColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Icon(
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
+                  size: 28,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Dropdown list with search
+        if (_isExpanded)
+          Container(
+            margin: const EdgeInsets.only(top: 16),
+            constraints: const BoxConstraints(maxHeight: 240),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _focusNode,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontFamily: '.SF Pro Text',
+                      color: MediaPlayerStyles.mutedColor,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search languages...',
+                      hintStyle: TextStyle(
+                        color: MediaPlayerStyles.mutedColor.withValues(
+                          alpha: 0.4,
+                        ),
+                        fontSize: 16,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: MediaPlayerStyles.mutedColor.withValues(
+                          alpha: 0.4,
+                        ),
+                        size: 20,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: MediaPlayerStyles.subtleBorder,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: MediaPlayerStyles.subtleBorder,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: AppTheme.accent.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Language list
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _filteredLanguages.length,
+                    itemBuilder: (context, index) {
+                      final language = _filteredLanguages[index];
+                      final isSelected =
+                          language.locale == widget.selectedLanguage.locale;
+
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _selectLanguage(language),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  isSelected
+                                      ? AppTheme.accent.withValues(alpha: 0.08)
+                                      : Colors.transparent,
+                              border: Border(
+                                bottom: BorderSide(
+                                  color:
+                                      index == _filteredLanguages.length - 1
+                                          ? Colors.transparent
+                                          : MediaPlayerStyles.subtleBorder
+                                              .withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    language.nativeName,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight:
+                                          isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                      color:
+                                          isSelected
+                                              ? AppTheme.accent
+                                              : MediaPlayerStyles.mutedColor,
+                                      fontFamily: '.SF Pro Text',
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AppTheme.accent,
+                                    size: 20,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
