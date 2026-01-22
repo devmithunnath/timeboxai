@@ -252,7 +252,6 @@ class AnalyticsService {
       },
     );
   }
-}
 
   void trackOnboardingNotificationStepViewed() {
     if (kDebugMode) {
@@ -329,3 +328,4 @@ class AnalyticsService {
       },
     );
   }
+}

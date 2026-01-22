@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../providers/timer_provider.dart';
@@ -289,56 +288,4 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
     );
   }
 
-  Widget _buildSparkles() {
-    return AnimatedBuilder(
-      animation: _celebrationController,
-      builder: (context, child) {
-        final antX = _calculateAntPosition();
-        final sparkleOpacity = (1 - _sparkleAnimation.value).clamp(0.0, 1.0);
-
-        return Positioned(
-          left: antX + antWidth / 2 - 40,
-          bottom: pathHeight + antHeight - 20,
-          child: Opacity(
-            opacity: sparkleOpacity,
-            child: SizedBox(
-              width: 80,
-              height: 60,
-              child: Stack(
-                children: List.generate(6, (index) {
-                  final angle = (index * 60) * (math.pi / 180);
-                  final radius = 20 + (_sparkleAnimation.value * 30);
-                  final x = 40 + math.cos(angle) * radius;
-                  final y = 30 + math.sin(angle) * radius;
-
-                  return Positioned(
-                    left: x - 4,
-                    top: y - 4,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFE85A3C).withValues(
-                          alpha: (0.8 - _sparkleAnimation.value * 0.8),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(
-                              0xFFE85A3C,
-                            ).withValues(alpha: 0.5),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 }

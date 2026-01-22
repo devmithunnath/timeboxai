@@ -8,7 +8,7 @@
 PRODUCT_NAME = PipBox
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.pipbox.app
+PRODUCT_BUNDLE_IDENTIFIER = app.pipbox.timer
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 PipBox. All rights reserved.

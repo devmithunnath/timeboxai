@@ -164,11 +164,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     } else if (_currentStep == 4) {
       widget.onboardingService.completeOnboarding();
       AnalyticsService().trackOnboardingCompleted(_customPresets.length);
-      
+
       // Update Supabase with completion timestamp and presets
       SupabaseService().updateOnboardingCompleted();
       SupabaseService().updatePresetTimers(_customPresets);
-      
+
       widget.onComplete();
     }
   }
@@ -208,17 +208,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Future<void> _enableNotifications() async {
-    final result = await NotificationService().requestPermissions();
-    debugPrint('Notification permission result: $result');
-
-    // Show a test notification to trigger macOS permission prompt if needed
-    await NotificationService().showNotification(
-      id: 1,
-      title: 'Notifications Enabled!',
-      body: 'You will be notified when your timer completes.',
-    );
-
+    // Navigate immediately so user sees responsiveness
     _nextStep();
+
+    // Then request permissions and show test notification in background
+    try {
+      final result = await NotificationService().requestPermissions();
+      debugPrint('Notification permission result: $result');
+
+      // Show a test notification
+      await NotificationService().showNotification(
+        id: 1,
+        title: 'Notifications Enabled!',
+        body: 'You will be notified when your timer completes.',
+      );
+    } catch (e) {
+      debugPrint('Error enabling notifications: $e');
+    }
   }
 
   String _formatDuration(int totalSeconds) {
@@ -1064,7 +1070,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
             child: Column(
               children: [
-                Container(
+                SizedBox(
                   height: 120,
                   width: double.infinity,
                   child: Stack(
