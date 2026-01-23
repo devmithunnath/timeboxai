@@ -294,7 +294,9 @@ class AnalyticsService {
     required String direction,
   }) {
     if (kDebugMode) {
-      print('[Analytics] >>> ONBOARDING NAVIGATION: Step $fromStep → $toStep ($direction)');
+      print(
+        '[Analytics] >>> ONBOARDING NAVIGATION: Step $fromStep → $toStep ($direction)',
+      );
     }
     trackEvent(
       'onboarding_step_navigation',
@@ -318,14 +320,56 @@ class AnalyticsService {
     required String toLanguage,
   }) {
     if (kDebugMode) {
-      print('[Analytics] >>> SETTINGS LANGUAGE CHANGED: $fromLanguage → $toLanguage');
+      print(
+        '[Analytics] >>> SETTINGS LANGUAGE CHANGED: $fromLanguage → $toLanguage',
+      );
     }
     trackEvent(
       'settings_language_changed',
-      properties: {
-        'from_language': fromLanguage,
-        'to_language': toLanguage,
-      },
+      properties: {'from_language': fromLanguage, 'to_language': toLanguage},
     );
+  }
+
+  void trackOnboardingValueDemoViewed() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING VALUE DEMO VIEWED');
+    }
+    trackEvent('onboarding_value_demo_viewed');
+  }
+
+  void trackOnboardingUseCaseSelected(String useCase) {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING USE CASE SELECTED: $useCase');
+    }
+    trackEvent(
+      'onboarding_use_case_selected',
+      properties: {'use_case': useCase},
+    );
+  }
+
+  void trackOnboardingDemoTimerStarted() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING DEMO TIMER STARTED');
+    }
+    trackEvent('onboarding_demo_timer_started');
+  }
+
+  void trackOnboardingDemoTimerCompleted(int completionTimeMs) {
+    if (kDebugMode) {
+      print(
+        '[Analytics] >>> ONBOARDING DEMO TIMER COMPLETED: ${completionTimeMs}ms',
+      );
+    }
+    trackEvent(
+      'onboarding_demo_timer_completed',
+      properties: {'completion_time_ms': completionTimeMs},
+    );
+  }
+
+  void trackOnboardingProgressSeedViewed() {
+    if (kDebugMode) {
+      print('[Analytics] >>> ONBOARDING PROGRESS SEED VIEWED');
+    }
+    trackEvent('onboarding_progress_seed_viewed');
   }
 }

@@ -57,12 +57,12 @@
     "step5Description": "세션이 완료되면 사운드 및 시스템 알림으로 알려드립니다.",
     "step6Title": "집중 준비 완료",
     "step6Description": "모든 준비가 완료되었습니다! 첫 번째 세션을 시작하여 생산성을 높이세요.",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "뭐라고 부를까요?",
+    "enterName": "이름을 입력하세요",
+    "chooseLanguage": "언어 선택",
+    "changeAnytime": "설정에서 언제든지 변경할 수 있어요",
+    "setPresets": "타이머 프리셋 설정",
+    "addFavoriteDurations": "선호하는 집중 시간 추가"
   },
   "notification": {
     "timeUp": "시간 종료!",

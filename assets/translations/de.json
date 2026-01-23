@@ -57,12 +57,12 @@
     "step5Description": "Werden Sie bei Abschluss Ihrer Sitzung mit Ton und Systembenachrichtigungen informiert.",
     "step6Title": "Bereit zum Fokussieren",
     "step6Description": "Sie sind startklar! Beginnen Sie Ihre erste Sitzung und steigern Sie Ihre Produktivität.",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "Wie soll ich dich nennen?",
+    "enterName": "Gib deinen Namen ein",
+    "chooseLanguage": "Wähle deine Sprache",
+    "changeAnytime": "Du kannst dies jederzeit in den Einstellungen ändern",
+    "setPresets": "Timer-Voreinstellungen festlegen",
+    "addFavoriteDurations": "Füge deine bevorzugten Fokuszeiten hinzu"
   },
   "notification": {
     "timeUp": "Zeit ist um!",

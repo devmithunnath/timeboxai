@@ -246,4 +246,23 @@ class SupabaseService {
       }
     }
   }
+
+  Future<void> updateUseCase(String useCase) async {
+    if (!isInitialized || _userId == null) return;
+
+    try {
+      await _client!
+          .from('users')
+          .update({'use_case': useCase})
+          .eq('id', _userId!);
+
+      if (kDebugMode) {
+        print('Updated user use case: $useCase');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating use case: $e');
+      }
+    }
+  }
 }

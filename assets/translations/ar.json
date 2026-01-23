@@ -57,12 +57,12 @@
     "step5Description": "احصل على إشعار عند اكتمال جلستك بصوت وإشعارات النظام.",
     "step6Title": "جاهز للتركيز",
     "step6Description": "أنت جاهز! ابدأ جلستك الأولى وعزز إنتاجيتك.",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "ماذا أناديك؟",
+    "enterName": "أدخل اسمك",
+    "chooseLanguage": "اختر لغتك",
+    "changeAnytime": "يمكنك تغيير هذا في أي وقت من الإعدادات",
+    "setPresets": "اضبط إعدادات المؤقت المسبقة",
+    "addFavoriteDurations": "أضف فترات التركيز المفضلة لديك"
   },
   "notification": {
     "timeUp": "انتهى الوقت!",

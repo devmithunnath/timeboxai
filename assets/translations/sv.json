@@ -57,12 +57,12 @@
     "step5Description": "Get notified when your session completes with sound and system notifications.",
     "step6Title": "Ready to Focus",
     "step6Description": "You're all set! Start your first session and boost your productivity.",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "Vad ska jag kalla dig?",
+    "enterName": "Ange ditt namn",
+    "chooseLanguage": "Välj ditt språk",
+    "changeAnytime": "Du kan ändra detta när som helst i inställningarna",
+    "setPresets": "Ställ in dina förinställningar",
+    "addFavoriteDurations": "Lägg till dina favorit-fokustider"
   },
   "notification": {
     "timeUp": "Time's Up!",

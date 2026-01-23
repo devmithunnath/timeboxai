@@ -159,3 +159,10 @@ ON users(last_active_at DESC);
 -- FROM pg_indexes 
 -- WHERE schemaname = 'public' 
 -- ORDER BY tablename, indexname;
+
+-- Add use_case column to users table
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS use_case TEXT;
+
+COMMENT ON COLUMN users.use_case IS 'User selected use case: studying, deep_work, creative, workout, meditation, general';
+

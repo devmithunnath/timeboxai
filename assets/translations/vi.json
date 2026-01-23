@@ -57,12 +57,12 @@
     "step5Description": "Get notified when your session completes with sound and system notifications.",
     "step6Title": "Ready to Focus",
     "step6Description": "You're all set! Start your first session and boost your productivity.",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "Tôi gọi bạn là gì?",
+    "enterName": "Nhập tên của bạn",
+    "chooseLanguage": "Chọn ngôn ngữ của bạn",
+    "changeAnytime": "Bạn có thể thay đổi điều này bất cứ lúc nào trong cài đặt",
+    "setPresets": "Đặt cài đặt sẵn hẹn giờ",
+    "addFavoriteDurations": "Thêm thời lượng tập trung yêu thích"
   },
   "notification": {
     "timeUp": "Time's Up!",

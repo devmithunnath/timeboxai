@@ -35,6 +35,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Locale? _selectedLanguage;
   bool _hasTrackedLanguageView = false;
 
+  // New state for enhanced onboarding
+  String? _selectedUseCase;
+  bool _hasTrackedValueDemo = false;
+  bool _hasTrackedProgressSeed = false;
+
   late AnimationController _welcomeController;
   late Animation<double> _welcomeFadeAnimation;
   late Animation<double> _welcomeScaleAnimation;
@@ -124,51 +129,66 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _nextStep() {
+    // Step 0: Language Selection
     if (_currentStep == 0) {
-      // Language selection step - always allow continuing
       if (_selectedLanguage != null) {
         final languages = LocalizationService().getSupportedLanguages();
         final selectedLang = languages.firstWhere(
           (lang) => lang.locale == _selectedLanguage,
           orElse: () => languages.first,
         );
-
-        // Track analytics
         AnalyticsService().trackOnboardingLanguageSelected(
           _selectedLanguage!.toString(),
           selectedLang.nativeName,
         );
-
-        // Set locale and save
         context.setLocale(_selectedLanguage!);
         LocalizationService().saveLocale(_selectedLanguage!);
-
-        // Save to Supabase
         SupabaseService().updateUserLanguage(_selectedLanguage!.toString());
       }
       setState(() => _currentStep = 1);
-    } else if (_currentStep == 1) {
+    }
+    // Step 1: Value Demo - just continue
+    else if (_currentStep == 1) {
+      setState(() => _currentStep = 2);
+    }
+    // Step 2: Use Case Selection
+    else if (_currentStep == 2) {
+      if (_selectedUseCase != null) {
+        AnalyticsService().trackOnboardingUseCaseSelected(_selectedUseCase!);
+        SupabaseService().updateUseCase(_selectedUseCase!);
+      }
+      setState(() => _currentStep = 3);
+    }
+    // Step 3: Name Input
+    else if (_currentStep == 3) {
       if (_nameController.text.trim().isNotEmpty) {
         final name = _nameController.text.trim();
         widget.onboardingService.setUserName(name);
         AnalyticsService().trackOnboardingNameEntered(name);
-        setState(() => _currentStep = 2);
+        setState(() => _currentStep = 4);
       }
-    } else if (_currentStep == 2) {
+    }
+    // Step 4: Presets
+    else if (_currentStep == 4) {
       if (_customPresets.isNotEmpty) {
         widget.onboardingService.setPresetTimers(_customPresets);
-        setState(() => _currentStep = 3);
+        setState(() => _currentStep = 5);
       }
-    } else if (_currentStep == 3) {
-      setState(() => _currentStep = 4);
-    } else if (_currentStep == 4) {
+    }
+    // Step 5: Demo Timer - just continue after completion
+    else if (_currentStep == 5) {
+      setState(() => _currentStep = 6);
+    }
+    // Step 6: Notifications
+    else if (_currentStep == 6) {
+      setState(() => _currentStep = 7);
+    }
+    // Step 7: Progress Seed - Complete onboarding
+    else if (_currentStep == 7) {
       widget.onboardingService.completeOnboarding();
       AnalyticsService().trackOnboardingCompleted(_customPresets.length);
-
-      // Update Supabase with completion timestamp and presets
       SupabaseService().updateOnboardingCompleted();
       SupabaseService().updatePresetTimers(_customPresets);
-
       widget.onComplete();
     }
   }
@@ -358,13 +378,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       case 0:
         return _buildLanguageStep();
       case 1:
-        return _buildNameStep();
+        return _buildValueDemoStep();
       case 2:
-        return _buildPresetsStep();
+        return _buildUseCaseStep();
       case 3:
-        return _buildNotificationStep();
+        return _buildNameStep();
       case 4:
-        return _buildAntExplanationStep();
+        return _buildPresetsStep();
+      case 5:
+        return _buildDemoTimerStep();
+      case 6:
+        return _buildNotificationStep();
+      case 7:
+        return _buildProgressSeedStep();
       default:
         return const SizedBox.shrink();
     }
@@ -567,6 +593,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         setState(() {
                           _selectedLanguage = locale;
                         });
+                        // Apply locale immediately so UI updates
+                        context.setLocale(locale);
                       },
                     ),
                   ),
@@ -576,15 +604,347 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [_buildProgressDots(1), _buildNextButton(text: 'Next')],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NEW: Value Demo Step - Shows animated ant preview
+  Widget _buildValueDemoStep() {
+    if (!_hasTrackedValueDemo) {
+      _hasTrackedValueDemo = true;
+      AnalyticsService().trackOnboardingValueDemoViewed();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          const Spacer(),
+          // Animated ant preview container
+          Container(
+            width: 280,
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.accent.withValues(alpha: 0.2)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Animated ant moving across
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(seconds: 3),
+                    builder: (context, value, child) {
+                      return Positioned(
+                        left: 20 + (value * 160),
+                        child: SvgPicture.asset(
+                          'assets/images/character-orange-crop.svg',
+                          width: 80,
+                          height: 60,
+                        ),
+                      );
+                    },
+                  ),
+                  // Path line
+                  Positioned(
+                    bottom: 25,
+                    left: 30,
+                    right: 30,
+                    child: Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
+          Text(
+            'onboarding.valueDemo.title'.tr(),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Rounded',
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'onboarding.valueDemo.description'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              fontFamily: '.SF Pro Text',
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
+              height: 1.5,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildProgressDots(1),
+              _buildProgressDots(2),
+              _buildNextButton(text: 'onboarding.next'.tr()),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NEW: Use Case Selection Step
+  Widget _buildUseCaseStep() {
+    final useCases = [
+      {
+        'id': 'studying',
+        'icon': '🎓',
+        'label': 'onboarding.useCase.studying'.tr(),
+      },
+      {
+        'id': 'deep_work',
+        'icon': '💼',
+        'label': 'onboarding.useCase.deepWork'.tr(),
+      },
+      {
+        'id': 'creative',
+        'icon': '🎨',
+        'label': 'onboarding.useCase.creative'.tr(),
+      },
+      {
+        'id': 'workout',
+        'icon': '🏋️',
+        'label': 'onboarding.useCase.workout'.tr(),
+      },
+      {
+        'id': 'meditation',
+        'icon': '🧘',
+        'label': 'onboarding.useCase.meditation'.tr(),
+      },
+      {
+        'id': 'general',
+        'icon': '⏰',
+        'label': 'onboarding.useCase.general'.tr(),
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          const Spacer(),
+          Text(
+            'onboarding.useCase.title'.tr(),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Rounded',
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'onboarding.useCase.subtitle'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
+            children:
+                useCases.map((useCase) {
+                  final isSelected = _selectedUseCase == useCase['id'];
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedUseCase = useCase['id'] as String;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected
+                                ? AppTheme.accent.withValues(alpha: 0.15)
+                                : MediaPlayerStyles.subtleBackground,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? AppTheme.accent
+                                  : MediaPlayerStyles.subtleBorder,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            useCase['icon'] as String,
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            useCase['label'] as String,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                              color:
+                                  isSelected
+                                      ? AppTheme.accent
+                                      : MediaPlayerStyles.mutedColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildProgressDots(3),
               Row(
                 children: [
                   _buildPreviousButton(),
                   const SizedBox(width: 16),
-                  _buildNextButton(text: 'Next'),
+                  _buildNextButton(
+                    text: 'onboarding.next'.tr(),
+                    enabled: _selectedUseCase != null,
+                  ),
                 ],
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NEW: Demo Timer Step - 10 second quick focus sprint
+  Widget _buildDemoTimerStep() {
+    return _DemoTimerWidget(
+      onComplete: () {
+        AnalyticsService().trackOnboardingDemoTimerCompleted(10000);
+        _nextStep();
+      },
+      onSkip: _nextStep,
+      progressDots: _buildProgressDots(6),
+    );
+  }
+
+  // NEW: Progress Seed Step - Day 1 of journey
+  Widget _buildProgressSeedStep() {
+    if (!_hasTrackedProgressSeed) {
+      _hasTrackedProgressSeed = true;
+      AnalyticsService().trackOnboardingProgressSeedViewed();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          const Spacer(),
+          // Day 1 Badge
+          Container(
+            width: 160,
+            height: 160,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.accent,
+                  AppTheme.accent.withValues(alpha: 0.8),
+                ],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.accent.withValues(alpha: 0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Day',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                    fontFamily: '.SF Pro Text',
+                  ),
+                ),
+                Text(
+                  '1',
+                  style: TextStyle(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontFamily: '.SF Pro Rounded',
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+          Text(
+            'onboarding.progressSeed.title'.tr(),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Rounded',
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'onboarding.progressSeed.subtitle'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              fontFamily: '.SF Pro Text',
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
+              height: 1.5,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildProgressDots(8),
+              _buildNextButton(text: 'onboarding.startFocusing'.tr()),
             ],
           ),
         ],
@@ -625,7 +985,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildProgressDots(3),
+              _buildProgressDots(5),
               Row(
                 children: [
                   _buildPreviousButton(),
@@ -684,7 +1044,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildProgressDots(4),
+              _buildProgressDots(7),
               Row(
                 children: [
                   GestureDetector(
@@ -954,15 +1314,26 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildNextButton({String text = 'Next'}) {
+  Widget _buildNextButton({String text = 'Next', bool? enabled}) {
+    // If enabled is explicitly passed, use it; otherwise compute based on step
     final isEnabled =
-        _currentStep == 0
-            ? true // Language step - always enabled
+        enabled ??
+        (_currentStep == 0
+            ? true // Language step
             : _currentStep == 1
-            ? _nameController.text.trim().isNotEmpty
+            ? true // Value demo
             : _currentStep == 2
-            ? _customPresets.isNotEmpty
-            : true;
+            ? _selectedUseCase !=
+                null // Use case
+            : _currentStep == 3
+            ? _nameController.text
+                .trim()
+                .isNotEmpty // Name
+            : _currentStep == 4
+            ? _customPresets
+                .isNotEmpty // Presets
+            : true // All other steps
+            );
 
     return GestureDetector(
       onTap: isEnabled ? _nextStep : null,
@@ -1044,99 +1415,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAntExplanationStep() {
-    return _buildCommonExplanationScreen(
-      stepIndex: 5,
-      nextLabel: 'Start focusing',
-      title: 'The ant is your progress',
-      content: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 120,
-                  width: double.infinity,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Positioned(
-                        bottom: 20,
-                        left: 20,
-                        right: 20,
-                        child: Container(
-                          height: 2,
-                          color: AppTheme.accent.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 16,
-                        right: 20,
-                        child: CircleAvatar(
-                          radius: 4,
-                          backgroundColor: AppTheme.accent,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 16,
-                        left: 20,
-                        child: Icon(
-                          Icons.flag_rounded,
-                          size: 16,
-                          color: AppTheme.accent,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 16,
-                        child: SvgPicture.asset(
-                          'assets/images/character-orange-crop.svg',
-                          width: 60,
-                          height: 60,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Your progress is visual',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2D2D2D),
-                    fontFamily: '.SF Pro Rounded',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'As the timer runs, your ant moves forward.\nWhen the journey ends, the session is complete.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                    color: MediaPlayerStyles.mutedColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1403,6 +1681,230 @@ class _LanguageDropdownState extends State<_LanguageDropdown> {
             ),
           ),
       ],
+    );
+  }
+}
+
+// Demo Timer Widget for the 10-second focus sprint
+class _DemoTimerWidget extends StatefulWidget {
+  final VoidCallback onComplete;
+  final VoidCallback onSkip;
+  final Widget progressDots;
+
+  const _DemoTimerWidget({
+    required this.onComplete,
+    required this.onSkip,
+    required this.progressDots,
+  });
+
+  @override
+  State<_DemoTimerWidget> createState() => _DemoTimerWidgetState();
+}
+
+class _DemoTimerWidgetState extends State<_DemoTimerWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isRunning = false;
+  bool _isComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    );
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() => _isComplete = true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    setState(() => _isRunning = true);
+    AnalyticsService().trackOnboardingDemoTimerStarted();
+    _controller.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          const Spacer(),
+          Text(
+            'onboarding.demoTimer.title'.tr(),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Rounded',
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'onboarding.demoTimer.subtitle'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 40),
+          // Timer display
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final remaining = 10 - (10 * _controller.value).floor();
+              return Column(
+                children: [
+                  // Circular progress with ant
+                  SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Background circle
+                        CircularProgressIndicator(
+                          value: 1.0,
+                          strokeWidth: 8,
+                          color: AppTheme.accent.withValues(alpha: 0.1),
+                        ),
+                        // Progress circle
+                        CircularProgressIndicator(
+                          value: _isRunning ? _controller.value : 0,
+                          strokeWidth: 8,
+                          color: AppTheme.accent,
+                        ),
+                        // Center content
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SvgPicture.asset(
+                              'assets/images/character-orange-crop.svg',
+                              width: 60,
+                              height: 45,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _isComplete ? '🎉' : '${remaining}s',
+                              style: TextStyle(
+                                fontSize: _isComplete ? 32 : 24,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.accent,
+                                fontFamily: '.SF Pro Rounded',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+          // Start / Complete button
+          if (!_isRunning)
+            GestureDetector(
+              onTap: _startTimer,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.accent,
+                      AppTheme.accent.withValues(alpha: 0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.accent.withValues(alpha: 0.4),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'onboarding.demoTimer.start'.tr(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            )
+          else if (_isComplete)
+            GestureDetector(
+              onTap: widget.onComplete,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.accent,
+                      AppTheme.accent.withValues(alpha: 0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Text(
+                  'onboarding.demoTimer.complete'.tr(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            )
+          else
+            Text(
+              'onboarding.demoTimer.focusMessage'.tr(),
+              style: TextStyle(
+                fontSize: 14,
+                color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              widget.progressDots,
+              if (!_isRunning)
+                GestureDetector(
+                  onTap: widget.onSkip,
+                  child: Text(
+                    'onboarding.skip'.tr(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: MediaPlayerStyles.mutedColor,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

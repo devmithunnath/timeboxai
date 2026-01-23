@@ -57,12 +57,12 @@
     "step5Description": "Get notified when your session completes with sound and system notifications.",
     "step6Title": "Ready to Focus",
     "step6Description": "You're all set! Start your first session and boost your productivity.",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "Sana ne diyeyim?",
+    "enterName": "Adını gir",
+    "chooseLanguage": "Dilini seç",
+    "changeAnytime": "Bunu ayarlardan istediğin zaman değiştirebilirsin",
+    "setPresets": "Zamanlayıcı ön ayarlarını belirle",
+    "addFavoriteDurations": "Favori odak sürelerini ekle"
   },
   "notification": {
     "timeUp": "Time's Up!",

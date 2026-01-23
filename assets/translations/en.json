@@ -45,12 +45,38 @@
     "skip": "Skip",
     "getStarted": "Get Started",
     "finish": "Finish",
+    "startFocusing": "Start Focusing",
     "whatToCallYou": "What do I call you?",
     "enterName": "Enter your name",
     "chooseLanguage": "Choose Your Language",
     "changeAnytime": "You can change this anytime in settings",
     "setPresets": "Set Your Timer Presets",
     "addFavoriteDurations": "Add your favorite focus durations",
+    "valueDemo": {
+      "title": "Watch Your Focus Come to Life",
+      "description": "As you focus, the ant travels across your screen—a gentle reminder of your progress and dedication."
+    },
+    "useCase": {
+      "title": "What brings you here?",
+      "subtitle": "Help us personalize your experience",
+      "studying": "Studying",
+      "deepWork": "Deep Work",
+      "creative": "Creative Sessions",
+      "workout": "Workouts",
+      "meditation": "Meditation",
+      "general": "General Timing"
+    },
+    "demoTimer": {
+      "title": "Try a Quick Focus Sprint",
+      "subtitle": "Experience how your focus journey will look",
+      "start": "Start 10s Timer",
+      "complete": "You Did It! Continue",
+      "focusMessage": "Stay focused..."
+    },
+    "progressSeed": {
+      "title": "Your Journey Begins Today",
+      "subtitle": "Every focused session brings you closer to your goals. Build your streak!"
+    },
     "step1Title": "Set Your Timer",
     "step1Description": "Click the timer to set your focus duration. Use presets or enter a custom time.",
     "step2Title": "Focus & Flow",

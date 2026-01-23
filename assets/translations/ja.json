@@ -57,12 +57,12 @@
     "step5Description": "セッション完了時にサウンドとシステム通知でお知らせします。",
     "step6Title": "集中の準備完了",
     "step6Description": "準備完了！最初のセッションを開始して生産性を向上させましょう。",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "お名前は?",
+    "enterName": "名前を入力",
+    "chooseLanguage": "言語を選択",
+    "changeAnytime": "設定でいつでも変更できます",
+    "setPresets": "タイマープリセットを設定",
+    "addFavoriteDurations": "お気に入りの集中時間を追加"
   },
   "notification": {
     "timeUp": "時間です！",

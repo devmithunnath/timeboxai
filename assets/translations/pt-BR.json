@@ -57,12 +57,12 @@
     "step5Description": "Seja notificado quando sua sessão terminar com som e notificações do sistema.",
     "step6Title": "Pronto para focar",
     "step6Description": "Tudo pronto! Comece sua primeira sessão e aumente sua produtividade.",
-    "whatToCallYou": "What do I call you?",
-    "enterName": "Enter your name",
-    "chooseLanguage": "Choose Your Language",
-    "changeAnytime": "You can change this anytime in settings",
-    "setPresets": "Set Your Timer Presets",
-    "addFavoriteDurations": "Add your favorite focus durations"
+    "whatToCallYou": "Como posso te chamar?",
+    "enterName": "Digite seu nome",
+    "chooseLanguage": "Escolha seu idioma",
+    "changeAnytime": "Você pode alterar isso a qualquer momento nas configurações",
+    "setPresets": "Defina suas predefinições",
+    "addFavoriteDurations": "Adicione suas durações de foco favoritas"
   },
   "notification": {
     "timeUp": "Tempo esgotado!",

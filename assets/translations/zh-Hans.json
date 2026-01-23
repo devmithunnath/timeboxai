@@ -57,12 +57,12 @@
     "step5Description": "会话完成时通过声音和系统通知提醒您。",
     "step6Title": "准备专注",
     "step6Description": "一切就绪！开始您的第一个会话，提升生产力。",
-    "whatToCallYou": "我该怎么称呼您？",
-    "enterName": "输入您的名字",
-    "chooseLanguage": "选择您的语言",
-    "changeAnytime": "您可以随时在设置中更改",
-    "setPresets": "设置您的计时器预设",
-    "addFavoriteDurations": "添加您喜欢的专注时长"
+    "whatToCallYou": "我该怎么称呼你?",
+    "enterName": "输入你的名字",
+    "chooseLanguage": "选择语言",
+    "changeAnytime": "你可以随时在设置中更改",
+    "setPresets": "设置计时器预设",
+    "addFavoriteDurations": "添加你喜欢的专注时长"
   },
   "notification": {
     "timeUp": "时间到！",
