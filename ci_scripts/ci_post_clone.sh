@@ -3,9 +3,6 @@
 # Fail this script if any subcommand fails.
 set -e
 
-echo "DEBUGGING: Forcing failure to verify script execution"
-exit 1
-
 # The default execution directory of this script is the ci_scripts directory.
 # cd to the root of our repository.
 cd ..
@@ -30,6 +27,12 @@ flutter precache --macos --ios
 # Install Flutter dependencies
 echo "Running flutter pub get..."
 flutter pub get
+
+# Fix for Xcode Cloud: Ensure xcfilelists exist to prevent immediate build failure
+echo "Creating placeholder xcfilelist files..."
+touch macos/Flutter/ephemeral/FlutterInputs.xcfilelist
+touch macos/Flutter/ephemeral/FlutterOutputs.xcfilelist
+touch macos/Flutter/ephemeral/Flutter-Generated.xcconfig
 
 # Verify generation of key files
 echo "Verifying generated files in macos/Flutter/ephemeral..."
