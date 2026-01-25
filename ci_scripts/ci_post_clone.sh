@@ -32,7 +32,12 @@ flutter pub get
 echo "Creating placeholder xcfilelist files..."
 touch macos/Flutter/ephemeral/FlutterInputs.xcfilelist
 touch macos/Flutter/ephemeral/FlutterOutputs.xcfilelist
-touch macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+if [ ! -f "macos/Flutter/ephemeral/Flutter-Generated.xcconfig" ]; then
+  echo "Generating missing Flutter-Generated.xcconfig..."
+  echo "FLUTTER_ROOT=$HOME/flutter" > macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+  echo "FLUTTER_APPLICATION_PATH=$(pwd)" >> macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+  echo "COCOAPODS_PARALLEL_CODE_SIGN=true" >> macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+fi
 
 # Verify generation of key files
 echo "Verifying generated files in macos/Flutter/ephemeral..."
