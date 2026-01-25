@@ -3,6 +3,9 @@
 # Fail this script if any subcommand fails.
 set -e
 
+echo "DEBUGGING: Forcing failure to verify script execution"
+exit 1
+
 # The default execution directory of this script is the ci_scripts directory.
 # cd to the root of our repository.
 cd ..
