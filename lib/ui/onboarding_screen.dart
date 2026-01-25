@@ -9,6 +9,10 @@ import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../services/supabase_service.dart';
 import 'theme.dart';
+import 'package:provider/provider.dart';
+import '../services/sound_service.dart';
+import '../providers/timer_provider.dart';
+import 'widgets/ant_progress_indicator.dart';
 import 'widgets/media_player_control.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -233,6 +237,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
     // Then request permissions and show test notification in background
     try {
+      await NotificationService().init(); // Ensure initialization
       final result = await NotificationService().requestPermissions();
       debugPrint('Notification permission result: $result');
 
@@ -721,16 +726,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         'id': 'creative',
         'icon': '🎨',
         'label': 'onboarding.useCase.creative'.tr(),
-      },
-      {
-        'id': 'workout',
-        'icon': '🏋️',
-        'label': 'onboarding.useCase.workout'.tr(),
-      },
-      {
-        'id': 'meditation',
-        'icon': '🧘',
-        'label': 'onboarding.useCase.meditation'.tr(),
       },
       {
         'id': 'general',
@@ -1685,7 +1680,6 @@ class _LanguageDropdownState extends State<_LanguageDropdown> {
   }
 }
 
-// Demo Timer Widget for the 10-second focus sprint
 class _DemoTimerWidget extends StatefulWidget {
   final VoidCallback onComplete;
   final VoidCallback onSkip;
@@ -1704,12 +1698,14 @@ class _DemoTimerWidget extends StatefulWidget {
 class _DemoTimerWidgetState extends State<_DemoTimerWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late MockTimerProvider _mockTimer;
   bool _isRunning = false;
   bool _isComplete = false;
 
   @override
   void initState() {
     super.initState();
+    _mockTimer = MockTimerProvider();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
@@ -1717,6 +1713,16 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         setState(() => _isComplete = true);
+        _mockTimer.update(1.0, 0, false, true); // Finished
+        SoundService().playCompletionSound();
+      }
+    });
+    
+    _controller.addListener(() {
+      if (_controller.isAnimating) {
+        final progress = _controller.value;
+        final remaining = 10 - (10 * progress).floor();
+        _mockTimer.update(progress, remaining, true, false);
       }
     });
   }
@@ -1725,10 +1731,14 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
   void dispose() {
     _controller.dispose();
     super.dispose();
+    // No need to dispose mock timer as it's just a data holder essentially, 
+    // but good practice if we attached listeners.
+    _mockTimer.dispose();
   }
 
   void _startTimer() {
     setState(() => _isRunning = true);
+    _mockTimer.update(0.0, 10, true, false);
     AnalyticsService().trackOnboardingDemoTimerStarted();
     _controller.forward();
   }
@@ -1758,77 +1768,51 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
               color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
             ),
           ),
-          const SizedBox(height: 40),
-          // Timer display
+          
+          const Spacer(),
+          
+          // Timer display with AntProgressIndicator
           AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
               final remaining = 10 - (10 * _controller.value).floor();
               return Column(
                 children: [
-                  // Circular progress with ant
+                  Text(
+                    _isComplete ? '🎉' : '${remaining}s',
+                    style: TextStyle(
+                      fontSize: 64,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.accent,
+                      fontFamily: '.SF Pro Rounded',
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 40), // Add space between timer and ant
                   SizedBox(
-                    width: 200,
                     height: 200,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Background circle
-                        CircularProgressIndicator(
-                          value: 1.0,
-                          strokeWidth: 8,
-                          color: AppTheme.accent.withValues(alpha: 0.1),
-                        ),
-                        // Progress circle
-                        CircularProgressIndicator(
-                          value: _isRunning ? _controller.value : 0,
-                          strokeWidth: 8,
-                          color: AppTheme.accent,
-                        ),
-                        // Center content
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SvgPicture.asset(
-                              'assets/images/character-orange-crop.svg',
-                              width: 60,
-                              height: 45,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _isComplete ? '🎉' : '${remaining}s',
-                              style: TextStyle(
-                                fontSize: _isComplete ? 32 : 24,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.accent,
-                                fontFamily: '.SF Pro Rounded',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    width: double.infinity,
+                    child: AntProgressIndicator(
+                      timer: _mockTimer,
+                      windowWidth: MediaQuery.of(context).size.width - 80, // Account for padding
                     ),
                   ),
                 ],
               );
             },
           ),
-          const SizedBox(height: 32),
+          
+          const Spacer(),
+          
           // Start / Complete button
           if (!_isRunning)
             GestureDetector(
               onTap: _startTimer,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppTheme.accent,
-                      AppTheme.accent.withValues(alpha: 0.8),
-                    ],
+                    colors: [AppTheme.accent, AppTheme.accent.withValues(alpha: 0.8)],
                   ),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
@@ -1852,16 +1836,10 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
             GestureDetector(
               onTap: widget.onComplete,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppTheme.accent,
-                      AppTheme.accent.withValues(alpha: 0.8),
-                    ],
+                    colors: [AppTheme.accent, AppTheme.accent.withValues(alpha: 0.8)],
                   ),
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -1884,7 +1862,7 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
                 fontStyle: FontStyle.italic,
               ),
             ),
-          const Spacer(),
+          const SizedBox(height: 32),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1907,4 +1885,35 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
       ),
     );
   }
+}
+
+// Mock Provider for Demo
+class MockTimerProvider extends ChangeNotifier implements TimerProvider {
+  double _progress = 0.0;
+  bool _isRunning = false;
+  bool _isFinished = false;
+  Duration _remainingDuration = const Duration(seconds: 10);
+
+  void update(double progress, int remainingSeconds, bool isRunning, bool isFinished) {
+    _progress = progress;
+    _remainingDuration = Duration(seconds: remainingSeconds);
+    _isRunning = isRunning;
+    _isFinished = isFinished;
+    notifyListeners();
+  }
+
+  @override
+  double get progress => _progress;
+  @override
+  bool get isRunning => _isRunning;
+  @override
+  bool get isFinished => _isFinished;
+  @override
+  bool get isPaused => false;
+  @override
+  Duration get remainingDuration => _remainingDuration;
+  
+  // Stubs for other members to satisfy interface
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
