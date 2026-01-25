@@ -28,22 +28,16 @@ flutter precache --macos --ios
 echo "Running flutter pub get..."
 flutter pub get
 
-# Fix for Xcode Cloud: Ensure xcfilelists exist to prevent immediate build failure
-echo "Creating placeholder xcfilelist files..."
-touch macos/Flutter/ephemeral/FlutterInputs.xcfilelist
-touch macos/Flutter/ephemeral/FlutterOutputs.xcfilelist
-if [ ! -f "macos/Flutter/ephemeral/Flutter-Generated.xcconfig" ]; then
-  echo "Generating missing Flutter-Generated.xcconfig..."
-  echo "FLUTTER_ROOT=$HOME/flutter" > macos/Flutter/ephemeral/Flutter-Generated.xcconfig
-  echo "FLUTTER_APPLICATION_PATH=$(pwd)" >> macos/Flutter/ephemeral/Flutter-Generated.xcconfig
-  echo "COCOAPODS_PARALLEL_CODE_SIGN=true" >> macos/Flutter/ephemeral/Flutter-Generated.xcconfig
-fi
+# CRITICAL: Generate Flutter build files for macOS
+# This creates the ephemeral directory and all necessary xcconfig files
+echo "Generating Flutter build files for macOS..."
+flutter build macos --config-only
 
 # Verify generation of key files
 echo "Verifying generated files in macos/Flutter/ephemeral..."
 ls -la macos/Flutter/ephemeral || echo "Directory macos/Flutter/ephemeral not found!"
 
-# Install CocoaPods dependencies.
+# Install CocoaPods dependencies
 echo "Running pod install in macos directory..."
 cd macos
 pod install --repo-update
