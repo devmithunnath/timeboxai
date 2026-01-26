@@ -39,6 +39,19 @@ class SoundService {
     });
   }
 
+  /// Play the session completion sound (Glass)
+  Future<void> playCompletionSound() async {
+    try {
+      final player = AudioPlayer();
+      await player.play(DeviceFileSource('/System/Library/Sounds/Glass.aiff'));
+      await player.dispose();
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error playing completion sound: $e");
+      }
+    }
+  }
+
   /// Dispose resources when no longer needed
   void dispose() {
     _clickPlayer.dispose();
