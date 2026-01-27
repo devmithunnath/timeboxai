@@ -51,6 +51,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late AnimationController _contentController;
   late Animation<double> _contentFadeAnimation;
 
+  late AnimationController _addButtonController;
+  int? _duplicatePresetId;
+  Timer? _duplicateTimer;
+
   bool _showWelcome = true;
   bool _showContent = false;
   int _countdownValue = 5;
@@ -86,10 +90,30 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       CurvedAnimation(parent: _contentController, curve: Curves.easeOut),
     );
 
+    _addButtonController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
     _nameController.addListener(() => setState(() {}));
+    _minutesController.addListener(_updateAddButtonAnimation);
+    _secondsController.addListener(_updateAddButtonAnimation);
 
     AnalyticsService().trackOnboardingStarted();
     _startWelcomeSequence();
+  }
+
+  void _updateAddButtonAnimation() {
+    final hasMinutes = _minutesController.text.isNotEmpty;
+    final hasSeconds = _secondsController.text.isNotEmpty;
+    if (hasMinutes && hasSeconds) {
+      if (!_addButtonController.isAnimating) {
+        _addButtonController.repeat(reverse: true);
+      }
+    } else {
+      _addButtonController.reset();
+    }
+    setState(() {});
   }
 
   void _startWelcomeSequence() {
@@ -124,11 +148,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _duplicateTimer?.cancel();
     _nameController.dispose();
     _minutesController.dispose();
     _secondsController.dispose();
     _welcomeController.dispose();
     _contentController.dispose();
+    _addButtonController.dispose();
     super.dispose();
   }
 
@@ -213,14 +239,30 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final seconds = int.tryParse(_secondsController.text) ?? 0;
     final totalSeconds = (minutes * 60) + seconds;
 
-    if (totalSeconds > 0 && !_customPresets.contains(totalSeconds)) {
-      setState(() {
-        _customPresets.add(totalSeconds);
-        _customPresets.sort();
-      });
-      AnalyticsService().trackOnboardingPresetAdded(totalSeconds);
-      _minutesController.clear();
-      _secondsController.clear();
+    if (totalSeconds > 0) {
+      if (!_customPresets.contains(totalSeconds)) {
+        setState(() {
+          _customPresets.add(totalSeconds);
+          _customPresets.sort();
+          _duplicatePresetId = null;
+        });
+        AnalyticsService().trackOnboardingPresetAdded(totalSeconds);
+        _minutesController.clear();
+        _secondsController.clear();
+      } else {
+        // Handle duplicate
+        setState(() {
+          _duplicatePresetId = totalSeconds;
+        });
+        _duplicateTimer?.cancel();
+        _duplicateTimer = Timer(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _duplicatePresetId = null;
+            });
+          }
+        });
+      }
     }
   }
 
@@ -1180,30 +1222,35 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
         ),
         const SizedBox(width: 20),
-        GestureDetector(
-          onTap: _addPreset,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  MediaPlayerStyles.primaryColorLight,
-                  MediaPlayerStyles.primaryColor,
+        ScaleTransition(
+          scale: Tween<double>(begin: 1.0, end: 1.1).animate(
+            CurvedAnimation(parent: _addButtonController, curve: Curves.easeInOut),
+          ),
+          child: GestureDetector(
+            onTap: _addPreset,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    MediaPlayerStyles.primaryColorLight,
+                    MediaPlayerStyles.primaryColor,
+                  ],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: MediaPlayerStyles.primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: MediaPlayerStyles.primaryColor.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
             ),
-            child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
           ),
         ),
       ],
@@ -1249,20 +1296,29 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     row.asMap().entries.map((entry) {
                       final index = entry.key;
                       final seconds = entry.value;
+                      final isDuplicate = seconds == _duplicatePresetId;
 
                       return Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.accent.withValues(alpha: 0.1),
+                              color:
+                                  isDuplicate
+                                      ? Colors.red.withValues(alpha: 0.15)
+                                      : AppTheme.accent.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: AppTheme.accent.withValues(alpha: 0.3),
+                                color:
+                                    isDuplicate
+                                        ? Colors.red.withValues(alpha: 0.5)
+                                        : AppTheme.accent.withValues(alpha: 0.3),
+                                width: isDuplicate ? 2 : 1,
                               ),
                             ),
                             child: Row(
@@ -1273,7 +1329,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.accent,
+                                    color: isDuplicate ? Colors.red : AppTheme.accent,
                                     fontFamily: '.SF Pro Text',
                                   ),
                                 ),
