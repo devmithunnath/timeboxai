@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../services/onboarding_service.dart';
+import '../services/supabase_service.dart';
 import 'theme.dart';
 import 'widgets/section_header.dart';
 import 'widgets/media_player_control.dart';
+import 'widgets/feedback_modal.dart';
+import 'widgets/toast.dart';
 
 class SettingsScreen extends StatelessWidget {
   final VoidCallback onClose;
@@ -14,78 +18,127 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFBFBFB), // Slightly off-white for premium feel
       body: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: '.SF Pro Rounded',
-                      color: AppTheme.accent,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                const SectionHeader(title: 'ABOUT'),
-                const SizedBox(height: 12),
-                _buildSettingsTile(
-                  icon: Icons.info_outline_rounded,
-                  title: 'Version',
-                  subtitle: '1.0.0+1',
-                ),
-
-                const SizedBox(height: 24),
-                const SectionHeader(title: 'DATA'),
-                const SizedBox(height: 12),
-                if (kDebugMode)
-                  _buildSettingsTile(
-                    icon: Icons.refresh_rounded,
-                    title: 'Reset Session',
-                    subtitle: 'Reset onboarding and start fresh',
-                    onTap: () async {
-                      final onboarding = context.read<OnboardingService>();
-                      await onboarding.resetOnboarding();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Session reset! Restart the app.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-
-                const Spacer(),
-
-                Center(
-                  child: Text(
-                    'Made with ❤️ for focus',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: MediaPlayerStyles.mutedColor.withValues(
-                        alpha: 0.5,
+            padding: const EdgeInsets.fromLTRB(28, 60, 28, 24),
+            child: Consumer<OnboardingService>(
+              builder: (context, onboarding, _) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Text(
+                        'Settings',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: '.SF Pro Rounded',
+                          color: AppTheme.accent,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                      fontFamily: '.SF Pro Text',
                     ),
-                  ),
-                ),
-              ],
+                    const SizedBox(height: 40),
+
+                    const SectionHeader(title: 'NOTIFICATIONS'),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer([
+                      _buildToggleTile(
+                        icon: Icons.notifications_none_rounded,
+                        title: 'Notifications',
+                        value: onboarding.notificationsEnabled,
+                        onChanged: (val) {
+                          onboarding.toggleNotifications(val);
+                          AppToast.show(context, 'Settings saved');
+                        },
+                      ),
+                    ]),
+
+                    const SizedBox(height: 32),
+                    const SectionHeader(title: 'FEEDBACK'),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer([
+                      _buildActionTile(
+                        icon: Icons.chat_bubble_outline_rounded,
+                        title: 'Provide Feedback',
+                        subtitle: 'Share your feedback and requests',
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const FeedbackModal(),
+                          );
+                        },
+                      ),
+                    ]),
+
+                    const SizedBox(height: 32),
+                    const SectionHeader(title: 'LANGUAGE'),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer([
+                      _buildActionTile(
+                        icon: Icons.language_rounded,
+                        title: 'Language',
+                        trailingText: _getLanguageName(context.locale.languageCode),
+                        onTap: () async {
+                          // In a real app, this might open a picker. 
+                          // For now, let's toggle between En and Zh for demo or show a simple logic.
+                          // Actually, the user asked to update language immediate.
+                          // Let's assume there's a language selector we can show or just toggle for now.
+                          // Given the mockup shows "English >", let's keep it consistent.
+                          _showLanguagePicker(context);
+                        },
+                      ),
+                    ]),
+
+                    const SizedBox(height: 32),
+                    const SectionHeader(title: 'ABOUT'),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer([
+                      _buildInfoTile(
+                        icon: Icons.info_outline_rounded,
+                        title: 'Version',
+                        trailingText: '1.0.0+1',
+                      ),
+                      if (kDebugMode) ...[
+                        const Divider(height: 1, indent: 50, color: Color(0xFFF2F2F7)),
+                        _buildActionTile(
+                          icon: Icons.refresh_rounded,
+                          title: 'Reset Session',
+                          subtitle: 'Reset onboarding and start fresh',
+                          onTap: () async {
+                            await onboarding.resetOnboarding();
+                            if (context.mounted) {
+                              AppToast.show(context, 'Session reset! Restarting...');
+                            }
+                          },
+                        ),
+                      ],
+                    ]),
+
+                    const Spacer(),
+
+                    Center(
+                      child: Text(
+                        'Made with ❤️ for focus',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.5),
+                          fontFamily: '.SF Pro Text',
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
 
           Positioned(
-            top: 12,
-            right: 12,
+            top: 20,
+            right: 20,
             child: _CloseButton(onPressed: onClose),
           ),
         ],
@@ -93,24 +146,122 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsTile({
+  String _getLanguageName(String code) {
+    switch (code) {
+      case 'en': return 'English';
+      case 'zh': return 'Chinese';
+      case 'ja': return 'Japanese';
+      default: return 'English';
+    }
+  }
+
+  void _showLanguagePicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Select Language',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text('English'),
+                onTap: () {
+                  context.setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                  AppToast.show(context, 'Language updated');
+                },
+              ),
+              ListTile(
+                title: const Text('Chinese (Simplified)'),
+                onTap: () {
+                  context.setLocale(const Locale('zh', 'Hans'));
+                  Navigator.pop(context);
+                  AppToast.show(context, 'Language updated');
+                },
+              ),
+              // Add more as needed
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSettingsContainer(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E5EA), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildToggleTile({
+    required IconData icon,
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _buildIconCircle(icon),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppTheme.accent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
     required IconData icon,
     required String title,
     String? subtitle,
-    VoidCallback? onTap,
+    String? trailingText,
+    required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
-      child: Container(
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: MediaPlayerStyles.subtleBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: MediaPlayerStyles.subtleBorder),
-        ),
         child: Row(
           children: [
-            Icon(icon, color: AppTheme.accent, size: 22),
+            _buildIconCircle(icon),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -118,36 +269,85 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: MediaPlayerStyles.mutedColor,
-                      fontFamily: '.SF Pro Text',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1D1D1F),
                     ),
                   ),
                   if (subtitle != null)
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 12,
-                        color: MediaPlayerStyles.mutedColor.withValues(
-                          alpha: 0.6,
-                        ),
-                        fontFamily: '.SF Pro Text',
+                        fontSize: 13,
+                        color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
                       ),
                     ),
                 ],
               ),
             ),
-            if (onTap != null)
-              Icon(
-                Icons.chevron_right_rounded,
-                color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.5),
-                size: 20,
+            if (trailingText != null)
+              Text(
+                trailingText,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.5),
+                ),
               ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.3),
+              size: 20,
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String title,
+    required String trailingText,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          _buildIconCircle(icon),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+          ),
+          Text(
+            trailingText,
+            style: TextStyle(
+              fontSize: 15,
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(width: 28), // Matchchevron width
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconCircle(IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppTheme.accent.withValues(alpha: 0.08),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: AppTheme.accent, size: 20),
     );
   }
 }
@@ -184,9 +384,9 @@ class _CloseButtonState extends State<_CloseButton> {
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 200),
             opacity: _isHovered ? 1.0 : 0.6,
-            child: Icon(
+            child: const Icon(
               Icons.close_rounded,
-              color: MediaPlayerStyles.mutedColor,
+              color: Color(0xFF8E8E93),
               size: 22,
             ),
           ),

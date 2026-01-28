@@ -8,26 +8,42 @@ class OnboardingService extends ChangeNotifier {
   static const String _userNameKey = 'user_name';
   static const String _presetTimersKey = 'preset_timers';
 
+  static const String _notificationsEnabledKey = 'notifications_enabled';
+
   SharedPreferences? _prefs;
   bool _hasCompletedOnboarding = false;
   String _userName = '';
   List<int> _presetTimers = [5 * 60, 10 * 60, 15 * 60];
+  bool _notificationsEnabled = true;
 
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   String get userName => _userName;
   List<int> get presetTimers => List.unmodifiable(_presetTimers);
+  bool get notificationsEnabled => _notificationsEnabled;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     _hasCompletedOnboarding =
         _prefs?.getBool(_hasCompletedOnboardingKey) ?? false;
     _userName = _prefs?.getString(_userNameKey) ?? '';
+    _notificationsEnabled = _prefs?.getBool(_notificationsEnabledKey) ?? true;
 
     final presetTimersJson = _prefs?.getString(_presetTimersKey);
     if (presetTimersJson != null) {
       _presetTimers = List<int>.from(jsonDecode(presetTimersJson));
     }
 
+    notifyListeners();
+  }
+
+  Future<void> toggleNotifications(bool enabled) async {
+    _notificationsEnabled = enabled;
+    await _prefs?.setBool(_notificationsEnabledKey, enabled);
+    if (_hasCompletedOnboarding) {
+      await SupabaseService().updateNotificationPermission(
+        enabled ? 'granted' : 'denied',
+      );
+    }
     notifyListeners();
   }
 

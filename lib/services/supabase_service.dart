@@ -154,7 +154,7 @@ class SupabaseService {
     try {
       await _client!
           .from('users')
-          .update({'notification_permission_status': status})
+          .update({'notification_permission': status})
           .eq('id', _userId!);
 
       if (kDebugMode) {
@@ -263,6 +263,35 @@ class SupabaseService {
       if (kDebugMode) {
         print('Error updating use case: $e');
       }
+    }
+  }
+
+
+
+  Future<void> submitFeedback({
+    required String title,
+    required String description,
+    String? attachmentUrl,
+  }) async {
+    if (!isInitialized || _userId == null) return;
+
+    try {
+      await _client!.from('feedback').insert({
+        'user_id': _userId,
+        'title': title,
+        'description': description,
+        'attachment_url': attachmentUrl,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      if (kDebugMode) {
+        print('Feedback submitted successfully');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error submitting feedback: $e');
+      }
+      rethrow;
     }
   }
 }

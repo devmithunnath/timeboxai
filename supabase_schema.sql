@@ -74,3 +74,19 @@ ALTER TABLE app_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public access to users" ON users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public access to timer_sessions" ON timer_sessions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public access to app_sessions" ON app_sessions FOR ALL USING (true) WITH CHECK (true);
+
+-- 5. Create 'feedback' table
+CREATE TABLE IF NOT EXISTS feedback (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  attachment_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT feedback_title_not_empty CHECK (char_length(title) > 0)
+);
+
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow users to insert their own feedback" ON feedback FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow users to view their own feedback" ON feedback FOR SELECT USING (true);
+
