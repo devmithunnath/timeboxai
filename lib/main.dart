@@ -14,7 +14,7 @@ import 'ui/onboarding_screen.dart';
 import 'ui/theme.dart';
 
 void main(List<String> args) async {
-  WidgetsFlutterBinding.ensureInitialized();
+  SentryWidgetsFlutterBinding.ensureInitialized();
 
   // Initialize EasyLocalization before other services
   await EasyLocalization.ensureInitialized();

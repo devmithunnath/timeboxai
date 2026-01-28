@@ -48,6 +48,9 @@ class OnboardingService extends ChangeNotifier {
       _presetTimers.add(seconds);
       _presetTimers.sort();
       await _prefs?.setString(_presetTimersKey, jsonEncode(_presetTimers));
+      if (_hasCompletedOnboarding) {
+        await SupabaseService().updatePresetTimers(_presetTimers);
+      }
       notifyListeners();
     }
   }
@@ -55,6 +58,9 @@ class OnboardingService extends ChangeNotifier {
   Future<void> removePresetTimer(int seconds) async {
     _presetTimers.remove(seconds);
     await _prefs?.setString(_presetTimersKey, jsonEncode(_presetTimers));
+    if (_hasCompletedOnboarding) {
+      await SupabaseService().updatePresetTimers(_presetTimers);
+    }
     notifyListeners();
   }
 
