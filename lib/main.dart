@@ -28,14 +28,18 @@ void main(List<String> args) async {
     },
     appRunner: () async {
       await windowManager.ensureInitialized();
-      await AnalyticsService().init();
-      await SupabaseService().init();
-      await NotificationService().init();
-
+      
       final onboardingService = OnboardingService();
-      await onboardingService.init();
+      
+      // Start all initializations in parallel
+      final initializationFuture = Future.wait([
+        AnalyticsService().init(),
+        SupabaseService().init(),
+        NotificationService().init(),
+        onboardingService.init(),
+      ]);
 
-      WindowOptions windowOptions = const WindowOptions(
+      const windowOptions = WindowOptions(
         size: Size(600, 580),
         minimumSize: Size(600, 580),
         maximumSize: Size(600, 580),
@@ -46,10 +50,19 @@ void main(List<String> args) async {
         title: "PipBox",
       );
 
+      // Start waiting for the window to be ready
       windowManager.waitUntilReadyToShow(windowOptions, () async {
+        // Only show once all services and the window are ready
+        await initializationFuture;
         await windowManager.show();
         await windowManager.focus();
       });
+
+      // We need onboardingService init to be done for PipBoxApp to determine home screen
+      // but initializationFuture already covers it. 
+      // We'll wait here briefly to ensure PipBoxApp gets a consistent state if needed,
+      // or just trust the future.
+      await initializationFuture;
 
       runApp(
         EasyLocalization(
