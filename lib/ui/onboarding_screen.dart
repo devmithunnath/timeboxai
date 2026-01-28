@@ -1224,7 +1224,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         const SizedBox(width: 20),
         ScaleTransition(
           scale: Tween<double>(begin: 1.0, end: 1.1).animate(
-            CurvedAnimation(parent: _addButtonController, curve: Curves.easeInOut),
+            CurvedAnimation(
+              parent: _addButtonController,
+              curve: Curves.easeInOut,
+            ),
           ),
           child: GestureDetector(
             onTap: _addPreset,
@@ -1243,13 +1246,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: MediaPlayerStyles.primaryColor.withValues(alpha: 0.3),
+                    color: MediaPlayerStyles.primaryColor.withValues(
+                      alpha: 0.3,
+                    ),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+              child: const Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
             ),
           ),
         ),
@@ -1317,7 +1326,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 color:
                                     isDuplicate
                                         ? Colors.red.withValues(alpha: 0.5)
-                                        : AppTheme.accent.withValues(alpha: 0.3),
+                                        : AppTheme.accent.withValues(
+                                          alpha: 0.3,
+                                        ),
                                 width: isDuplicate ? 2 : 1,
                               ),
                             ),
@@ -1329,7 +1340,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: isDuplicate ? Colors.red : AppTheme.accent,
+                                    color:
+                                        isDuplicate
+                                            ? Colors.red
+                                            : AppTheme.accent,
                                     fontFamily: '.SF Pro Text',
                                   ),
                                 ),
@@ -1773,7 +1787,7 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
         SoundService().playCompletionSound();
       }
     });
-    
+
     _controller.addListener(() {
       if (_controller.isAnimating) {
         final progress = _controller.value;
@@ -1787,7 +1801,7 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
   void dispose() {
     _controller.dispose();
     super.dispose();
-    // No need to dispose mock timer as it's just a data holder essentially, 
+    // No need to dispose mock timer as it's just a data holder essentially,
     // but good practice if we attached listeners.
     _mockTimer.dispose();
   }
@@ -1824,9 +1838,9 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
               color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // Timer display with AntProgressIndicator
           AnimatedBuilder(
             animation: _controller,
@@ -1850,25 +1864,33 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
                     width: double.infinity,
                     child: AntProgressIndicator(
                       timer: _mockTimer,
-                      windowWidth: MediaQuery.of(context).size.width - 80, // Account for padding
+                      windowWidth:
+                          MediaQuery.of(context).size.width -
+                          80, // Account for padding
                     ),
                   ),
                 ],
               );
             },
           ),
-          
+
           const Spacer(),
-          
+
           // Start / Complete button
           if (!_isRunning)
             GestureDetector(
               onTap: _startTimer,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppTheme.accent, AppTheme.accent.withValues(alpha: 0.8)],
+                    colors: [
+                      AppTheme.accent,
+                      AppTheme.accent.withValues(alpha: 0.8),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
@@ -1892,10 +1914,16 @@ class _DemoTimerWidgetState extends State<_DemoTimerWidget>
             GestureDetector(
               onTap: widget.onComplete,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppTheme.accent, AppTheme.accent.withValues(alpha: 0.8)],
+                    colors: [
+                      AppTheme.accent,
+                      AppTheme.accent.withValues(alpha: 0.8),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -1950,7 +1978,12 @@ class MockTimerProvider extends ChangeNotifier implements TimerProvider {
   bool _isFinished = false;
   Duration _remainingDuration = const Duration(seconds: 10);
 
-  void update(double progress, int remainingSeconds, bool isRunning, bool isFinished) {
+  void update(
+    double progress,
+    int remainingSeconds,
+    bool isRunning,
+    bool isFinished,
+  ) {
     _progress = progress;
     _remainingDuration = Duration(seconds: remainingSeconds);
     _isRunning = isRunning;
@@ -1968,7 +2001,7 @@ class MockTimerProvider extends ChangeNotifier implements TimerProvider {
   bool get isPaused => false;
   @override
   Duration get remainingDuration => _remainingDuration;
-  
+
   // Stubs for other members to satisfy interface
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

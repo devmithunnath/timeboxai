@@ -55,12 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    if (kDebugMode)
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: SettingsButton(onPressed: _openSettings),
-                      ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: SettingsButton(onPressed: _openSettings),
+                    ),
 
                     Positioned(
                       top: 48,

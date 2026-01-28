@@ -46,7 +46,8 @@ class _LanguageSelectorScreenState extends State<LanguageSelectorScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.accent.withValues(alpha: 0.2) : AppTheme.card,
+        color:
+            isSelected ? AppTheme.accent.withValues(alpha: 0.2) : AppTheme.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected ? AppTheme.accent : Colors.transparent,

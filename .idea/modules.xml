@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/timeboxai.iml" filepath="$PROJECT_DIR$/timeboxai.iml" />
-      <module fileurl="file://$PROJECT_DIR$/android/timeboxai_android.iml" filepath="$PROJECT_DIR$/android/timeboxai_android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/timeboxai.iml" filepath="$PROJECT_DIR$/.idea/timeboxai.iml" />
     </modules>
   </component>
 </project>

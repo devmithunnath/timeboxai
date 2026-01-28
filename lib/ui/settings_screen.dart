@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/onboarding_service.dart';
@@ -45,23 +46,24 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const SectionHeader(title: 'DATA'),
                 const SizedBox(height: 12),
-                _buildSettingsTile(
-                  icon: Icons.refresh_rounded,
-                  title: 'Reset Session',
-                  subtitle: 'Reset onboarding and start fresh',
-                  onTap: () async {
-                    final onboarding = context.read<OnboardingService>();
-                    await onboarding.resetOnboarding();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Session reset! Restart the app.'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
-                ),
+                if (kDebugMode)
+                  _buildSettingsTile(
+                    icon: Icons.refresh_rounded,
+                    title: 'Reset Session',
+                    subtitle: 'Reset onboarding and start fresh',
+                    onTap: () async {
+                      final onboarding = context.read<OnboardingService>();
+                      await onboarding.resetOnboarding();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Session reset! Restart the app.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                  ),
 
                 const Spacer(),
 

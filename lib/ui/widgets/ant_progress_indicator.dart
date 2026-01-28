@@ -287,5 +287,4 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
       },
     );
   }
-
 }
