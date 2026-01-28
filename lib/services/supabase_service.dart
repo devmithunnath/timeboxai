@@ -266,14 +266,24 @@ class SupabaseService {
     }
   }
 
-
-
   Future<void> submitFeedback({
     required String title,
     required String description,
     String? attachmentUrl,
   }) async {
-    if (!isInitialized || _userId == null) return;
+    if (!isInitialized) {
+      throw Exception('Supabase is not initialized');
+    }
+    
+    if (_userId == null) {
+      // Try to re-load user ID if it's missing
+      final prefs = await SharedPreferences.getInstance();
+      _userId = prefs.getString('supabase_user_id');
+      
+      if (_userId == null) {
+        throw Exception('User ID is missing. Please complete onboarding or restart the app.');
+      }
+    }
 
     try {
       await _client!.from('feedback').insert({
@@ -289,7 +299,7 @@ class SupabaseService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error submitting feedback: $e');
+        print('Error submitting feedback detail: $e');
       }
       rethrow;
     }

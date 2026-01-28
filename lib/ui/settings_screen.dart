@@ -21,11 +21,12 @@ class SettingsScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFFBFBFB), // Slightly off-white for premium feel
       body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 60, 28, 24),
-            child: Consumer<OnboardingService>(
-              builder: (context, onboarding, _) {
-                return Column(
+          Consumer<OnboardingService>(
+            builder: (context, onboarding, _) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(28, 60, 28, 40),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Center(
@@ -82,11 +83,6 @@ class SettingsScreen extends StatelessWidget {
                         title: 'Language',
                         trailingText: _getLanguageName(context.locale.languageCode),
                         onTap: () async {
-                          // In a real app, this might open a picker. 
-                          // For now, let's toggle between En and Zh for demo or show a simple logic.
-                          // Actually, the user asked to update language immediate.
-                          // Let's assume there's a language selector we can show or just toggle for now.
-                          // Given the mockup shows "English >", let's keep it consistent.
                           _showLanguagePicker(context);
                         },
                       ),
@@ -117,7 +113,7 @@ class SettingsScreen extends StatelessWidget {
                       ],
                     ]),
 
-                    const Spacer(),
+                    const SizedBox(height: 60),
 
                     Center(
                       child: Text(
@@ -131,9 +127,9 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
 
           Positioned(
@@ -159,40 +155,69 @@ class SettingsScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Select Language',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                title: const Text('English'),
-                onTap: () {
-                  context.setLocale(const Locale('en'));
-                  Navigator.pop(context);
-                  AppToast.show(context, 'Language updated');
-                },
-              ),
-              ListTile(
-                title: const Text('Chinese (Simplified)'),
-                onTap: () {
-                  context.setLocale(const Locale('zh', 'Hans'));
-                  Navigator.pop(context);
-                  AppToast.show(context, 'Language updated');
-                },
-              ),
-              // Add more as needed
-            ],
+      builder: (bottomSheetContext) {
+        return Material(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Select Language',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: '.SF Pro Rounded',
+                    color: Color(0xFF1D1D1F),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildLanguageTile(context, 'English', const Locale('en')),
+                _buildLanguageTile(context, 'Chinese (Simplified)', const Locale('zh', 'Hans')),
+                _buildLanguageTile(context, 'Chinese (Traditional)', const Locale('zh', 'Hant')),
+                _buildLanguageTile(context, 'Japanese', const Locale('ja')),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         );
+      },
+    );
+  }
+
+  Widget _buildLanguageTile(BuildContext context, String title, Locale locale) {
+    final isSelected = context.locale == locale;
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          color: const Color(0xFF1D1D1F),
+        ),
+      ),
+      trailing: isSelected 
+        ? Icon(Icons.check_rounded, color: AppTheme.accent) 
+        : null,
+      onTap: () {
+        context.setLocale(locale);
+        SupabaseService().updateUserLanguage(locale.languageCode);
+        Navigator.pop(context);
+        AppToast.show(context, 'Language updated');
       },
     );
   }

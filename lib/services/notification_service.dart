@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 class NotificationService {
@@ -54,6 +55,15 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    // Check if notifications are enabled in settings
+    final prefs = await SharedPreferences.getInstance();
+    final isEnabled = prefs.getBool('notifications_enabled') ?? true;
+    
+    if (!isEnabled) {
+      if (kDebugMode) print('Notification suppressed: settings indicate disabled');
+      return;
+    }
+
     if (!_isInitialized) {
       if (kDebugMode) {
         print('NotificationService NOT initialized. Attempting to init...');
