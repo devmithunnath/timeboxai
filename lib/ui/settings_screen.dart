@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../services/onboarding_service.dart';
@@ -61,6 +62,26 @@ class SettingsScreen extends StatelessWidget {
                     ]),
 
                     const SizedBox(height: 32),
+                    const SectionHeader(title: 'PERMISSIONS'),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer([
+                      _buildToggleTile(
+                        icon: Icons.mic_none_rounded,
+                        title: 'Microphone & Speech',
+                        value: onboarding.microphoneEnabled,
+                        onChanged: (val) async {
+                          if (val) {
+                            // This will trigger the system prompt if needed
+                            onboarding.setMicrophoneEnabled(true);
+                          } else {
+                            onboarding.setMicrophoneEnabled(false);
+                          }
+                          AppToast.show(context, 'Permission updated');
+                        },
+                      ),
+                    ]),
+
+                    const SizedBox(height: 32),
                     const SectionHeader(title: 'FEEDBACK'),
                     const SizedBox(height: 12),
                     _buildSettingsContainer([
@@ -97,11 +118,16 @@ class SettingsScreen extends StatelessWidget {
                     const SectionHeader(title: 'VOICE SHORTCUT'),
                     const SizedBox(height: 12),
                     _buildSettingsContainer([
-                      _buildActionTile(
-                        icon: Icons.keyboard_rounded,
-                        title: 'Shortcut Key',
-                        trailingText: onboarding.hotkey,
-                        onTap: () => _showHotkeyPicker(context, onboarding),
+                      _HotkeyRecorder(
+                        currentLabel: onboarding.hotkey,
+                        onHotkeyRecorded: (label, keyId, modifiers) {
+                          onboarding.setHotkeyCustom(
+                            label: label,
+                            keyId: keyId,
+                            modifiers: modifiers,
+                          );
+                          AppToast.show(context, 'Hotkey updated');
+                        },
                       ),
                     ]),
 
@@ -245,53 +271,6 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showHotkeyPicker(BuildContext context, OnboardingService onboarding) {
-    final options = [
-      'Escape',
-      'Option+Space',
-      'Shift+Option+V',
-      'Control+Space',
-      'Command+Option+T',
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 16),
-              const Text(
-                'Select Voice Shortcut',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              ...options.map(
-                (opt) => ListTile(
-                  title: Text(opt),
-                  trailing:
-                      onboarding.hotkey == opt
-                          ? Icon(Icons.check, color: AppTheme.accent)
-                          : null,
-                  onTap: () {
-                    onboarding.setHotkey(opt);
-                    Navigator.pop(context);
-                    AppToast.show(context, 'Hotkey updated');
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildLanguageTile(BuildContext context, String title, Locale locale) {
     final isSelected = context.locale == locale;
@@ -467,6 +446,148 @@ class SettingsScreen extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(icon, color: AppTheme.accent, size: 20),
+    );
+  }
+}
+
+class _HotkeyRecorder extends StatefulWidget {
+  final String currentLabel;
+  final Function(String label, int keyId, List<String> modifiers) onHotkeyRecorded;
+
+  const _HotkeyRecorder({
+    required this.currentLabel,
+    required this.onHotkeyRecorded,
+  });
+
+  @override
+  State<_HotkeyRecorder> createState() => _HotkeyRecorderState();
+}
+
+class _HotkeyRecorderState extends State<_HotkeyRecorder> {
+  bool _isRecording = false;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _handleKeyEvent(RawKeyEvent event) {
+    if (!_isRecording) return;
+    if (event is! RawKeyDownEvent) return;
+
+    final key = event.logicalKey;
+    
+    // Ignore pure modifier presses
+    if (key == LogicalKeyboardKey.controlLeft ||
+        key == LogicalKeyboardKey.controlRight ||
+        key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight ||
+        key == LogicalKeyboardKey.altLeft ||
+        key == LogicalKeyboardKey.altRight ||
+        key == LogicalKeyboardKey.metaLeft ||
+        key == LogicalKeyboardKey.metaRight) {
+      return;
+    }
+
+    List<String> modifiers = [];
+    if (event.isControlPressed) modifiers.add('Control');
+    if (event.isAltPressed) modifiers.add('Alt');
+    if (event.isShiftPressed) modifiers.add('Shift');
+    if (event.isMetaPressed) modifiers.add('Command');
+
+    String label = '';
+    if (modifiers.isNotEmpty) {
+      label = '${modifiers.join('+')}+';
+    }
+    label += key.keyLabel;
+
+    widget.onHotkeyRecorded(
+      label,
+      key.keyId,
+      modifiers,
+    );
+
+    setState(() {
+      _isRecording = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _isRecording ? Icons.fiber_manual_record_rounded : Icons.keyboard_rounded, 
+              color: _isRecording ? Colors.red : AppTheme.accent, 
+              size: 20
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Shortcut Key',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1D1D1F),
+                  ),
+                ),
+                Text(
+                  _isRecording ? 'Press your desired keys...' : 'Press to change shortcut',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          RawKeyboardListener(
+            focusNode: _focusNode,
+            onKey: _handleKeyEvent,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isRecording = true;
+                });
+                _focusNode.requestFocus();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _isRecording ? AppTheme.accent : const Color(0xFFF2F2F7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _isRecording ? AppTheme.accent : const Color(0xFFE5E5EA),
+                  ),
+                ),
+                child: Text(
+                  _isRecording ? 'Record...' : widget.currentLabel,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _isRecording ? Colors.white : const Color(0xFF1D1D1F),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

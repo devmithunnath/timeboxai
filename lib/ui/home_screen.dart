@@ -94,30 +94,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final onboarding = Provider.of<OnboardingService>(context, listen: false);
     await hotKeyManager.unregisterAll();
 
-    // Map strings to KeyCode and KeyModifier
-    LogicalKeyboardKey keyCode = LogicalKeyboardKey.escape;
-    List<HotKeyModifier> modifiers = [];
+    // Map from onboarding service values
+    final savedId = onboarding.hotkeyId;
+    final savedModifiers = onboarding.hotkeyModifiers;
 
-    switch (onboarding.hotkey) {
-      case 'Escape':
-        keyCode = LogicalKeyboardKey.escape;
-        modifiers = [];
-        break;
-      case 'Shift+Option+V':
-        keyCode = LogicalKeyboardKey.keyV;
-        modifiers = [HotKeyModifier.shift, HotKeyModifier.alt];
-        break;
-      case 'Control+Space':
-        keyCode = LogicalKeyboardKey.space;
-        modifiers = [HotKeyModifier.control];
-        break;
-      case 'Command+Option+T':
-        keyCode = LogicalKeyboardKey.keyT;
-        modifiers = [HotKeyModifier.meta, HotKeyModifier.alt];
-        break;
-      default:
-        keyCode = LogicalKeyboardKey.escape;
-        modifiers = [];
+    // Resolve LogicalKeyboardKey from saved ID
+    LogicalKeyboardKey keyCode = LogicalKeyboardKey(savedId);
+
+    List<HotKeyModifier> modifiers = [];
+    for (final modStr in savedModifiers) {
+      final m = modStr.toLowerCase();
+      if (m == 'shift') modifiers.add(HotKeyModifier.shift);
+      else if (m == 'alt' || m == 'option') modifiers.add(HotKeyModifier.alt);
+      else if (m == 'control' || m == 'ctrl') modifiers.add(HotKeyModifier.control);
+      else if (m == 'meta' || m == 'command') modifiers.add(HotKeyModifier.meta);
     }
 
     HotKey hotKey = HotKey(

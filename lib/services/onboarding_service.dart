@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
 import 'supabase_service.dart';
@@ -12,6 +13,9 @@ class OnboardingService extends ChangeNotifier {
 
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _microphoneEnabledKey = 'microphone_enabled';
+  
+  static const String _hotkeyIdKey = 'hotkey_id';
+  static const String _hotkeyModifiersKey = 'hotkey_modifiers';
 
   SharedPreferences? _prefs;
   bool _hasCompletedOnboarding = false;
@@ -19,14 +23,18 @@ class OnboardingService extends ChangeNotifier {
   List<int> _presetTimers = [5 * 60, 10 * 60, 15 * 60];
   bool _notificationsEnabled = true;
   bool _microphoneEnabled = false;
-  String _hotkey = 'Escape';
+  String _hotkeyLabel = 'Escape';
+  int _hotkeyId = LogicalKeyboardKey.escape.keyId;
+  List<String> _hotkeyModifiers = [];
 
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   String get userName => _userName;
   List<int> get presetTimers => List.unmodifiable(_presetTimers);
   bool get notificationsEnabled => _notificationsEnabled;
   bool get microphoneEnabled => _microphoneEnabled;
-  String get hotkey => _hotkey;
+  String get hotkey => _hotkeyLabel;
+  int get hotkeyId => _hotkeyId;
+  List<String> get hotkeyModifiers => List.unmodifiable(_hotkeyModifiers);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -35,7 +43,9 @@ class OnboardingService extends ChangeNotifier {
     _userName = _prefs?.getString(_userNameKey) ?? '';
     _notificationsEnabled = _prefs?.getBool(_notificationsEnabledKey) ?? true;
     _microphoneEnabled = _prefs?.getBool(_microphoneEnabledKey) ?? false;
-    _hotkey = _prefs?.getString(_hotkeyKey) ?? 'Escape';
+    _hotkeyLabel = _prefs?.getString(_hotkeyKey) ?? 'Escape';
+    _hotkeyId = _prefs?.getInt(_hotkeyIdKey) ?? LogicalKeyboardKey.escape.keyId;
+    _hotkeyModifiers = _prefs?.getStringList(_hotkeyModifiersKey) ?? [];
 
     final presetTimersJson = _prefs?.getString(_presetTimersKey);
     if (presetTimersJson != null) {
@@ -79,10 +89,40 @@ class OnboardingService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setHotkey(String hotkey) async {
-    _hotkey = hotkey;
-    await _prefs?.setString(_hotkeyKey, hotkey);
+  Future<void> setHotkeyCustom({
+    required String label,
+    required int keyId,
+    required List<String> modifiers,
+  }) async {
+    _hotkeyLabel = label;
+    _hotkeyId = keyId;
+    _hotkeyModifiers = modifiers;
+    
+    await _prefs?.setString(_hotkeyKey, label);
+    await _prefs?.setInt(_hotkeyIdKey, keyId);
+    await _prefs?.setStringList(_hotkeyModifiersKey, modifiers);
+    
     notifyListeners();
+  }
+
+  Future<void> setHotkey(String label) async {
+    // Legacy support for the 4 presets
+    _hotkeyLabel = label;
+    int keyId = LogicalKeyboardKey.escape.keyId;
+    List<String> modifiers = [];
+
+    if (label == 'Shift+Option+V') {
+      keyId = LogicalKeyboardKey.keyV.keyId;
+      modifiers = ['Shift', 'Alt'];
+    } else if (label == 'Control+Space') {
+      keyId = LogicalKeyboardKey.space.keyId;
+      modifiers = ['Control'];
+    } else if (label == 'Command+Option+T') {
+      keyId = LogicalKeyboardKey.keyT.keyId;
+      modifiers = ['Meta', 'Alt'];
+    }
+
+    await setHotkeyCustom(label: label, keyId: keyId, modifiers: modifiers);
   }
 
   Future<void> setPresetTimers(List<int> timers) async {
