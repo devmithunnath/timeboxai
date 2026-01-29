@@ -163,6 +163,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _lastWords = '';
     });
     
+    // Sync with global state for Menubar
+    Provider.of<TimerProvider>(context, listen: false).setListening(true);
+    
     AppToast.show(
       context,
       'Listening...',
@@ -182,6 +185,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_isListening) return;
     await _speech.stop();
     setState(() => _isListening = false);
+    
+    // Sync with global state for Menubar
+    if (mounted) {
+      Provider.of<TimerProvider>(context, listen: false).setListening(false);
+    }
+
     if (_lastWords.isNotEmpty) {
       _processCommand(_lastWords);
     }

@@ -19,6 +19,7 @@ class TimerProvider with ChangeNotifier {
   bool _isPaused = false;
   bool _isFinished = false;
   DateTime? _endTime;
+  bool _isListening = false;
 
   // Supabase Session State
   String? _currentSessionId;
@@ -31,11 +32,17 @@ class TimerProvider with ChangeNotifier {
   bool get isRunning => _isRunning;
   bool get isPaused => _isPaused;
   bool get isFinished => _isFinished;
+  bool get isListening => _isListening;
 
   double get progress {
     if (_durationSeconds == 0) return 0.0;
     if (!_isRunning && !_isPaused && !_isFinished) return 1.0;
     return _remainingDuration.inMilliseconds / (_durationSeconds * 1000);
+  }
+
+  void setListening(bool value) {
+    _isListening = value;
+    notifyListeners();
   }
 
   TimerProvider();

@@ -13,6 +13,7 @@ import 'services/supabase_service.dart';
 import 'ui/home_screen.dart';
 import 'ui/onboarding_screen.dart';
 import 'ui/theme.dart';
+import 'services/menubar_service.dart';
 
 void main(List<String> args) async {
   SentryWidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ void main(List<String> args) async {
       await hotKeyManager.unregisterAll(); // Clear any stale hotkeys
       
       final onboardingService = OnboardingService();
+      final timerProvider = TimerProvider();
       
       // Start all initializations in parallel
       final initializationFuture = Future.wait([
@@ -39,6 +41,7 @@ void main(List<String> args) async {
         SupabaseService().init(),
         NotificationService().init(),
         onboardingService.init(),
+        MenuBarService().init(timerProvider),
       ]);
 
       const windowOptions = WindowOptions(
@@ -60,10 +63,6 @@ void main(List<String> args) async {
         await windowManager.focus();
       });
 
-      // We need onboardingService init to be done for PipBoxApp to determine home screen
-      // but initializationFuture already covers it. 
-      // We'll wait here briefly to ensure PipBoxApp gets a consistent state if needed,
-      // or just trust the future.
       await initializationFuture;
 
       runApp(
@@ -97,7 +96,10 @@ void main(List<String> args) async {
           startLocale: const Locale(
             'en',
           ), // Default to English for clean install
-          child: PipBoxApp(onboardingService: onboardingService),
+          child: PipBoxApp(
+            onboardingService: onboardingService,
+            timerProvider: timerProvider,
+          ),
         ),
       );
     },
@@ -106,8 +108,13 @@ void main(List<String> args) async {
 
 class PipBoxApp extends StatefulWidget {
   final OnboardingService onboardingService;
+  final TimerProvider timerProvider;
 
-  const PipBoxApp({super.key, required this.onboardingService});
+  const PipBoxApp({
+    super.key, 
+    required this.onboardingService,
+    required this.timerProvider,
+  });
 
   @override
   State<PipBoxApp> createState() => _PipBoxAppState();
@@ -132,7 +139,7 @@ class _PipBoxAppState extends State<PipBoxApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => TimerProvider()),
+        ChangeNotifierProvider.value(value: widget.timerProvider),
         ChangeNotifierProvider.value(value: widget.onboardingService),
       ],
       child: MaterialApp(
