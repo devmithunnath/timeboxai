@@ -167,6 +167,25 @@ class SupabaseService {
     }
   }
 
+  Future<void> updateMicrophonePermission(String status) async {
+    if (!isInitialized || _userId == null) return;
+
+    try {
+      await _client!
+          .from('users')
+          .update({'microphone_permission': status})
+          .eq('id', _userId!);
+
+      if (kDebugMode) {
+        print('Updated microphone permission: $status');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating microphone permission: $e');
+      }
+    }
+  }
+
   Future<void> updateOnboardingCompleted() async {
     if (!isInitialized || _userId == null) return;
 

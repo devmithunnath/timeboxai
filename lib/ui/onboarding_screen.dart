@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../services/analytics_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/notification_service.dart';
@@ -14,6 +15,7 @@ import '../services/sound_service.dart';
 import '../providers/timer_provider.dart';
 import 'widgets/ant_progress_indicator.dart';
 import 'widgets/media_player_control.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final OnboardingService onboardingService;
@@ -59,11 +61,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   bool _showContent = false;
   int _countdownValue = 5;
   Timer? _countdownTimer;
+  bool _countdownTimerActive = false;
+  bool _isRequestingMic = false;
+  bool _micPermanentlyDenied = false;
+  final stt.SpeechToText _speech = stt.SpeechToText();
 
   @override
   void initState() {
     super.initState();
     _customPresets = List.from(widget.onboardingService.presetTimers);
+    widget.onboardingService.addListener(_onServiceChange);
 
     _welcomeController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -145,8 +152,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     });
   }
 
+  Future<void> _openSystemSettings() async {
+    final Uri url = Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      // Fallback for newer macOS or different schemes
+      await launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security'));
+    }
+  }
+
+  void _onServiceChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    widget.onboardingService.removeListener(_onServiceChange);
     _countdownTimer?.cancel();
     _duplicateTimer?.cancel();
     _nameController.dispose();
@@ -213,8 +235,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     else if (_currentStep == 6) {
       setState(() => _currentStep = 7);
     }
-    // Step 7: Progress Seed - Complete onboarding
+    // Step 7: Microphone Permission
     else if (_currentStep == 7) {
+      setState(() => _currentStep = 8);
+    }
+    // Step 8: Progress Seed - Complete onboarding
+    else if (_currentStep == 8) {
       widget.onboardingService.completeOnboarding();
       AnalyticsService().trackOnboardingCompleted(_customPresets.length);
       SupabaseService().updateOnboardingCompleted();
@@ -291,6 +317,55 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       );
     } catch (e) {
       debugPrint('Error enabling notifications: $e');
+    }
+  }
+
+  Future<void> _enableMicrophone() async {
+    if (_isRequestingMic) return;
+    
+    setState(() {
+      _isRequestingMic = true;
+      _micPermanentlyDenied = false;
+    });
+
+    try {
+      debugPrint('Starting microphone initialization...');
+      
+      // initialize() will trigger the system permission dialogs.
+      // We check available status.
+      bool available = await _speech.initialize(
+        onError: (error) {
+          debugPrint('Speech initialize onError: ${error.errorMsg} (Permanent: ${error.permanent})');
+          if (error.errorMsg.contains('not_allowed') || 
+              error.errorMsg.contains('denied') || 
+              error.errorMsg.contains('error_permission')) {
+             setState(() => _micPermanentlyDenied = true);
+          }
+        },
+        onStatus: (status) => debugPrint('Speech status change: $status'),
+        debugLogging: true,
+      );
+      
+      final hasPermission = await _speech.hasPermission;
+      debugPrint('Initialization finished. Available: $available, Has Permission: $hasPermission');
+
+      if (available || hasPermission) {
+        await widget.onboardingService.setMicrophoneEnabled(true);
+      } else {
+        // Only set permanently denied if we're sure it's a permission issue
+        // and not just a service-unavailable issue.
+        if (!hasPermission) {
+          debugPrint('Permission check failed after initialization attempt');
+          // If we haven't seen an error yet, we'll wait a moment as some Macs are slow
+        }
+      }
+    } catch (e) {
+      debugPrint('Error during microphone enable: $e');
+      await widget.onboardingService.setMicrophoneEnabled(false);
+    } finally {
+      if (mounted) {
+        setState(() => _isRequestingMic = false);
+      }
     }
   }
 
@@ -437,6 +512,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       case 6:
         return _buildNotificationStep();
       case 7:
+        return _buildMicrophoneStep();
+      case 8:
         return _buildProgressSeedStep();
       default:
         return const SizedBox.shrink();
@@ -497,7 +574,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Widget _buildProgressDots(int activeIndex) {
     return Row(
-      children: List.generate(6, (index) {
+      children: List.generate(10, (index) {
         return Container(
           width: 8,
           height: 8,
@@ -578,7 +655,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_buildProgressDots(2), _buildNextButton()],
+            children: [_buildProgressDots(4), _buildNextButton()],
           ),
         ],
       ),
@@ -980,7 +1057,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildProgressDots(8),
+              _buildProgressDots(9),
               _buildNextButton(text: 'onboarding.startFocusing'.tr()),
             ],
           ),
@@ -1142,6 +1219,185 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         ),
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMicrophoneStep() {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.mic_rounded,
+              size: 64,
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'Voice Control',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Rounded',
+              color: AppTheme.accent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Control your timers and settings with your voice.\nRequires microphone access for speech recognition.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              fontFamily: '.SF Pro Text',
+              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 48),
+          
+          // Settings-style permission card
+          GestureDetector(
+            onTap: () {
+              if (_micPermanentlyDenied) {
+                _openSystemSettings();
+              } else if (!widget.onboardingService.microphoneEnabled && !_isRequestingMic) {
+                _enableMicrophone();
+              } else if (widget.onboardingService.microphoneEnabled) {
+                widget.onboardingService.setMicrophoneEnabled(false);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: _micPermanentlyDenied 
+                    ? Colors.red.withValues(alpha: 0.05) 
+                    : MediaPlayerStyles.subtleBackground,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _micPermanentlyDenied 
+                      ? Colors.red.withValues(alpha: 0.2) 
+                      : MediaPlayerStyles.subtleBorder,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _micPermanentlyDenied 
+                          ? Colors.red.withValues(alpha: 0.1) 
+                          : AppTheme.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _micPermanentlyDenied ? Icons.error_outline_rounded : Icons.mic_rounded, 
+                      color: _micPermanentlyDenied ? Colors.red : AppTheme.accent, 
+                      size: 24
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _micPermanentlyDenied ? 'Permission Denied' : 'Enable Voice Commands',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: '.SF Pro Text',
+                            color: _micPermanentlyDenied ? Colors.red.shade700 : Colors.black,
+                          ),
+                        ),
+                        Text(
+                          _micPermanentlyDenied 
+                            ? 'Tap to open System Settings' 
+                            : (widget.onboardingService.microphoneEnabled 
+                                ? 'Permission granted' 
+                                : 'Tap to grant access'),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _micPermanentlyDenied 
+                                ? Colors.red.withValues(alpha: 0.6) 
+                                : MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_isRequestingMic)
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else if (_micPermanentlyDenied)
+                    Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.red.withValues(alpha: 0.5))
+                  else
+                    Switch.adaptive(
+                      value: widget.onboardingService.microphoneEnabled,
+                      activeColor: AppTheme.accent,
+                      onChanged: (value) {
+                        if (value) {
+                          _enableMicrophone();
+                        } else {
+                          widget.onboardingService.setMicrophoneEnabled(false);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+          
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildProgressDots(8),
+              Row(
+                children: [
+                   GestureDetector(
+                    onTap: _nextStep,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: Text(
+                        'Maybe Later',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: MediaPlayerStyles.mutedColor,
+                          fontFamily: '.SF Pro Text',
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildNextButton(
+                    text: widget.onboardingService.microphoneEnabled ? 'Continue' : 'Next',
                   ),
                 ],
               ),

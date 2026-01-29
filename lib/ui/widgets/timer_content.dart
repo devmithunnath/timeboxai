@@ -113,9 +113,8 @@ class _TimerContentState extends State<TimerContent> {
                   showDialog(
                     context: context,
                     builder:
-                        (context) => AddPresetModal(
-                          onboardingService: onboarding,
-                        ),
+                        (context) =>
+                            AddPresetModal(onboardingService: onboarding),
                   );
                 },
         child: AnimatedOpacity(

@@ -9,6 +9,7 @@ import 'widgets/section_header.dart';
 import 'widgets/media_player_control.dart';
 import 'widgets/feedback_modal.dart';
 import 'widgets/toast.dart';
+import '../services/localization_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   final VoidCallback onClose;
@@ -18,7 +19,9 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFBFBFB), // Slightly off-white for premium feel
+      backgroundColor: const Color(
+        0xFFFBFBFB,
+      ), // Slightly off-white for premium feel
       body: Stack(
         children: [
           Consumer<OnboardingService>(
@@ -81,10 +84,24 @@ class SettingsScreen extends StatelessWidget {
                       _buildActionTile(
                         icon: Icons.language_rounded,
                         title: 'Language',
-                        trailingText: _getLanguageName(context.locale.languageCode),
+                        trailingText: _getLanguageName(
+                          context.locale.languageCode,
+                        ),
                         onTap: () async {
                           _showLanguagePicker(context);
                         },
+                      ),
+                    ]),
+
+                    const SizedBox(height: 32),
+                    const SectionHeader(title: 'VOICE SHORTCUT'),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer([
+                      _buildActionTile(
+                        icon: Icons.keyboard_rounded,
+                        title: 'Shortcut Key',
+                        trailingText: onboarding.hotkey,
+                        onTap: () => _showHotkeyPicker(context, onboarding),
                       ),
                     ]),
 
@@ -98,7 +115,11 @@ class SettingsScreen extends StatelessWidget {
                         trailingText: '1.0.0+1',
                       ),
                       if (kDebugMode) ...[
-                        const Divider(height: 1, indent: 50, color: Color(0xFFF2F2F7)),
+                        const Divider(
+                          height: 1,
+                          indent: 50,
+                          color: Color(0xFFF2F2F7),
+                        ),
                         _buildActionTile(
                           icon: Icons.refresh_rounded,
                           title: 'Reset Session',
@@ -106,7 +127,10 @@ class SettingsScreen extends StatelessWidget {
                           onTap: () async {
                             await onboarding.resetOnboarding();
                             if (context.mounted) {
-                              AppToast.show(context, 'Session reset! Restarting...');
+                              AppToast.show(
+                                context,
+                                'Session reset! Restarting...',
+                              );
                             }
                           },
                         ),
@@ -121,7 +145,9 @@ class SettingsScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.5),
+                          color: MediaPlayerStyles.mutedColor.withValues(
+                            alpha: 0.5,
+                          ),
                           fontFamily: '.SF Pro Text',
                         ),
                       ),
@@ -143,15 +169,19 @@ class SettingsScreen extends StatelessWidget {
   }
 
   String _getLanguageName(String code) {
-    switch (code) {
-      case 'en': return 'English';
-      case 'zh': return 'Chinese';
-      case 'ja': return 'Japanese';
-      default: return 'English';
+    final languages = LocalizationService().getSupportedLanguages();
+    try {
+      return languages
+          .firstWhere((lang) => lang.locale.languageCode == code)
+          .nativeName;
+    } catch (_) {
+      return 'English';
     }
   }
 
   void _showLanguagePicker(BuildContext context) {
+    final languages = LocalizationService().getSupportedLanguages();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -163,37 +193,100 @@ class SettingsScreen extends StatelessWidget {
         return Material(
           color: Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Select Language',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: '.SF Pro Rounded',
-                    color: Color(0xFF1D1D1F),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildLanguageTile(context, 'English', const Locale('en')),
-                _buildLanguageTile(context, 'Chinese (Simplified)', const Locale('zh', 'Hans')),
-                _buildLanguageTile(context, 'Chinese (Traditional)', const Locale('zh', 'Hant')),
-                _buildLanguageTile(context, 'Japanese', const Locale('ja')),
-                const SizedBox(height: 20),
-              ],
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
             ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Select Language',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: '.SF Pro Rounded',
+                      color: Color(0xFF1D1D1F),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: languages.length,
+                      itemBuilder: (context, index) {
+                        final lang = languages[index];
+                        return _buildLanguageTile(
+                          context,
+                          '${lang.flag} ${lang.nativeName}',
+                          lang.locale,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showHotkeyPicker(BuildContext context, OnboardingService onboarding) {
+    final options = [
+      'Escape',
+      'Option+Space',
+      'Shift+Option+V',
+      'Control+Space',
+      'Command+Option+T',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              const Text(
+                'Select Voice Shortcut',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              ...options.map(
+                (opt) => ListTile(
+                  title: Text(opt),
+                  trailing:
+                      onboarding.hotkey == opt
+                          ? Icon(Icons.check, color: AppTheme.accent)
+                          : null,
+                  onTap: () {
+                    onboarding.setHotkey(opt);
+                    Navigator.pop(context);
+                    AppToast.show(context, 'Hotkey updated');
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         );
       },
@@ -210,9 +303,8 @@ class SettingsScreen extends StatelessWidget {
           color: const Color(0xFF1D1D1F),
         ),
       ),
-      trailing: isSelected 
-        ? Icon(Icons.check_rounded, color: AppTheme.accent) 
-        : null,
+      trailing:
+          isSelected ? Icon(Icons.check_rounded, color: AppTheme.accent) : null,
       onTap: () {
         context.setLocale(locale);
         SupabaseService().updateUserLanguage(locale.languageCode);
@@ -305,7 +397,9 @@ class SettingsScreen extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
+                        color: MediaPlayerStyles.mutedColor.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ),
                 ],

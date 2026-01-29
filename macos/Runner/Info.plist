@@ -58,6 +58,10 @@
 	<string>NSApplication</string>
 	<key>NSUserNotificationAlertStyle</key>
 	<string>alert</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Allow microphone access to capture voice commands.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Allow speech recognition to interpret voice commands.</string>
 	<key>com.posthog.posthog.API_KEY</key>
 	<string>defer</string>
 	<key>com.posthog.posthog.POSTHOG_HOST</key>

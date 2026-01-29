@@ -1,25 +1,32 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'notification_service.dart';
 import 'supabase_service.dart';
 
 class OnboardingService extends ChangeNotifier {
   static const String _hasCompletedOnboardingKey = 'has_completed_onboarding';
   static const String _userNameKey = 'user_name';
   static const String _presetTimersKey = 'preset_timers';
+  static const String _hotkeyKey = 'voice_hotkey';
 
   static const String _notificationsEnabledKey = 'notifications_enabled';
+  static const String _microphoneEnabledKey = 'microphone_enabled';
 
   SharedPreferences? _prefs;
   bool _hasCompletedOnboarding = false;
   String _userName = '';
   List<int> _presetTimers = [5 * 60, 10 * 60, 15 * 60];
   bool _notificationsEnabled = true;
+  bool _microphoneEnabled = false;
+  String _hotkey = 'Escape';
 
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   String get userName => _userName;
   List<int> get presetTimers => List.unmodifiable(_presetTimers);
   bool get notificationsEnabled => _notificationsEnabled;
+  bool get microphoneEnabled => _microphoneEnabled;
+  String get hotkey => _hotkey;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -27,6 +34,8 @@ class OnboardingService extends ChangeNotifier {
         _prefs?.getBool(_hasCompletedOnboardingKey) ?? false;
     _userName = _prefs?.getString(_userNameKey) ?? '';
     _notificationsEnabled = _prefs?.getBool(_notificationsEnabledKey) ?? true;
+    _microphoneEnabled = _prefs?.getBool(_microphoneEnabledKey) ?? false;
+    _hotkey = _prefs?.getString(_hotkeyKey) ?? 'Escape';
 
     final presetTimersJson = _prefs?.getString(_presetTimersKey);
     if (presetTimersJson != null) {
@@ -39,8 +48,25 @@ class OnboardingService extends ChangeNotifier {
   Future<void> toggleNotifications(bool enabled) async {
     _notificationsEnabled = enabled;
     await _prefs?.setBool(_notificationsEnabledKey, enabled);
+
+    if (enabled) {
+      // Request OS-level permissions when enabling
+      await NotificationService().requestPermissions();
+    }
+
     if (_hasCompletedOnboarding) {
       await SupabaseService().updateNotificationPermission(
+        enabled ? 'granted' : 'denied',
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> setMicrophoneEnabled(bool enabled) async {
+    _microphoneEnabled = enabled;
+    await _prefs?.setBool(_microphoneEnabledKey, enabled);
+    if (_hasCompletedOnboarding) {
+      await SupabaseService().updateMicrophonePermission(
         enabled ? 'granted' : 'denied',
       );
     }
@@ -50,6 +76,12 @@ class OnboardingService extends ChangeNotifier {
   Future<void> setUserName(String name) async {
     _userName = name;
     await _prefs?.setString(_userNameKey, name);
+    notifyListeners();
+  }
+
+  Future<void> setHotkey(String hotkey) async {
+    _hotkey = hotkey;
+    await _prefs?.setString(_hotkeyKey, hotkey);
     notifyListeners();
   }
 
@@ -87,6 +119,11 @@ class OnboardingService extends ChangeNotifier {
     // Create user in Supabase
     if (_userName.isNotEmpty) {
       await SupabaseService().createUser(_userName);
+      
+      // Push initial permissions/settings to the newly created user record
+      await SupabaseService().updateNotificationPermission(_notificationsEnabled ? 'granted' : 'denied');
+      await SupabaseService().updateMicrophonePermission(_microphoneEnabled ? 'granted' : 'denied');
+      await SupabaseService().updatePresetTimers(_presetTimers);
     }
 
     notifyListeners();

@@ -5,13 +5,14 @@ class AppToast extends StatelessWidget {
   final String message;
   final bool isError;
 
-  const AppToast({
-    super.key,
-    required this.message,
-    this.isError = false,
-  });
+  const AppToast({super.key, required this.message, this.isError = false});
 
-  static void show(BuildContext context, String message, {bool isError = false}) {
+  static void show(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+    Duration duration = const Duration(seconds: 2),
+  }) {
     final scaffold = ScaffoldMessenger.of(context);
     scaffold.clearSnackBars();
     scaffold.showSnackBar(
@@ -20,7 +21,7 @@ class AppToast extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.transparent,
         content: AppToast(message: message, isError: isError),
-        duration: const Duration(seconds: 2),
+        duration: duration,
       ),
     );
   }
@@ -45,7 +46,9 @@ class AppToast extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
               color: Colors.white,
               size: 18,
             ),

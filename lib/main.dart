@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'env/env.dart';
@@ -28,6 +29,7 @@ void main(List<String> args) async {
     },
     appRunner: () async {
       await windowManager.ensureInitialized();
+      await hotKeyManager.unregisterAll(); // Clear any stale hotkeys
       
       final onboardingService = OnboardingService();
       
