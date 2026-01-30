@@ -43,7 +43,7 @@ class _TimerContentState extends State<TimerContent> {
         final rows = _chunkWidgets(presetWidgets, _maxPresetsPerRow);
 
         return Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             EditableTimerDisplay(

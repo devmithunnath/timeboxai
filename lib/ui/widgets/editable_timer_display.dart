@@ -66,7 +66,7 @@ class _EditableTimerDisplayState extends State<EditableTimerDisplay>
   @override
   Widget build(BuildContext context) {
     TextStyle timerStyle = TextStyle(
-      fontSize: 72,
+      fontSize: 100,
       fontWeight: FontWeight.w600,
       fontFamily: '.SF Pro Rounded',
       color: AppTheme.accent,
@@ -95,7 +95,7 @@ class _EditableTimerDisplayState extends State<EditableTimerDisplay>
     }
 
     return SizedBox(
-      width: 280,
+      width: 400,
       child: TextField(
         textAlign: TextAlign.center,
         style: timerStyle,
