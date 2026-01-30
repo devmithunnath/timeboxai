@@ -61,25 +61,6 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ]),
 
-                    const SizedBox(height: 32),
-                    const SectionHeader(title: 'PERMISSIONS'),
-                    const SizedBox(height: 12),
-                    _buildSettingsContainer([
-                      _buildToggleTile(
-                        icon: Icons.mic_none_rounded,
-                        title: 'Microphone & Speech',
-                        value: onboarding.microphoneEnabled,
-                        onChanged: (val) async {
-                          if (val) {
-                            // This will trigger the system prompt if needed
-                            onboarding.setMicrophoneEnabled(true);
-                          } else {
-                            onboarding.setMicrophoneEnabled(false);
-                          }
-                          AppToast.show(context, 'Permission updated');
-                        },
-                      ),
-                    ]),
 
                     const SizedBox(height: 32),
                     const SectionHeader(title: 'FEEDBACK'),
@@ -98,38 +79,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ]),
 
-                    const SizedBox(height: 32),
-                    const SectionHeader(title: 'LANGUAGE'),
-                    const SizedBox(height: 12),
-                    _buildSettingsContainer([
-                      _buildActionTile(
-                        icon: Icons.language_rounded,
-                        title: 'Language',
-                        trailingText: _getLanguageName(
-                          context.locale.languageCode,
-                        ),
-                        onTap: () async {
-                          _showLanguagePicker(context);
-                        },
-                      ),
-                    ]),
 
-                    const SizedBox(height: 32),
-                    const SectionHeader(title: 'VOICE SHORTCUT'),
-                    const SizedBox(height: 12),
-                    _buildSettingsContainer([
-                      _HotkeyRecorder(
-                        currentLabel: onboarding.hotkey,
-                        onHotkeyRecorded: (label, keyId, modifiers) {
-                          onboarding.setHotkeyCustom(
-                            label: label,
-                            keyId: keyId,
-                            modifiers: modifiers,
-                          );
-                          AppToast.show(context, 'Hotkey updated');
-                        },
-                      ),
-                    ]),
 
                     const SizedBox(height: 32),
                     const SectionHeader(title: 'ABOUT'),
@@ -194,104 +144,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  String _getLanguageName(String code) {
-    final languages = LocalizationService().getSupportedLanguages();
-    try {
-      return languages
-          .firstWhere((lang) => lang.locale.languageCode == code)
-          .nativeName;
-    } catch (_) {
-      return 'English';
-    }
-  }
-
-  void _showLanguagePicker(BuildContext context) {
-    final languages = LocalizationService().getSupportedLanguages();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (bottomSheetContext) {
-        return Material(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.7,
-            ),
-            child: SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Select Language',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: '.SF Pro Rounded',
-                      color: Color(0xFF1D1D1F),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: languages.length,
-                      itemBuilder: (context, index) {
-                        final lang = languages[index];
-                        return _buildLanguageTile(
-                          context,
-                          '${lang.flag} ${lang.nativeName}',
-                          lang.locale,
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
 
-  Widget _buildLanguageTile(BuildContext context, String title, Locale locale) {
-    final isSelected = context.locale == locale;
-    return ListTile(
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          color: const Color(0xFF1D1D1F),
-        ),
-      ),
-      trailing:
-          isSelected ? Icon(Icons.check_rounded, color: AppTheme.accent) : null,
-      onTap: () {
-        context.setLocale(locale);
-        SupabaseService().updateUserLanguage(locale.languageCode);
-        Navigator.pop(context);
-        AppToast.show(context, 'Language updated');
-      },
-    );
-  }
 
   Widget _buildSettingsContainer(List<Widget> children) {
     return Container(

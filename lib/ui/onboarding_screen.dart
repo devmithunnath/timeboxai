@@ -38,8 +38,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   final TextEditingController _minutesController = TextEditingController();
   final TextEditingController _secondsController = TextEditingController();
   List<int> _customPresets = [];
-  Locale? _selectedLanguage;
-  bool _hasTrackedLanguageView = false;
 
   // New state for enhanced onboarding
   String? _selectedUseCase;
@@ -181,66 +179,44 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _nextStep() {
-    // Step 0: Language Selection
+    // Step 0: Value Demo - just continue
     if (_currentStep == 0) {
-      if (_selectedLanguage != null) {
-        final languages = LocalizationService().getSupportedLanguages();
-        final selectedLang = languages.firstWhere(
-          (lang) => lang.locale == _selectedLanguage,
-          orElse: () => languages.first,
-        );
-        AnalyticsService().trackOnboardingLanguageSelected(
-          _selectedLanguage!.toString(),
-          selectedLang.nativeName,
-        );
-        context.setLocale(_selectedLanguage!);
-        LocalizationService().saveLocale(_selectedLanguage!);
-        SupabaseService().updateUserLanguage(_selectedLanguage!.toString());
-      }
       setState(() => _currentStep = 1);
     }
-    // Step 1: Value Demo - just continue
+    // Step 1: Use Case Selection
     else if (_currentStep == 1) {
-      setState(() => _currentStep = 2);
-    }
-    // Step 2: Use Case Selection
-    else if (_currentStep == 2) {
       if (_selectedUseCase != null) {
         AnalyticsService().trackOnboardingUseCaseSelected(_selectedUseCase!);
         SupabaseService().updateUseCase(_selectedUseCase!);
       }
-      setState(() => _currentStep = 3);
+      setState(() => _currentStep = 2);
     }
-    // Step 3: Name Input
-    else if (_currentStep == 3) {
+    // Step 2: Name Input
+    else if (_currentStep == 2) {
       if (_nameController.text.trim().isNotEmpty) {
         final name = _nameController.text.trim();
         widget.onboardingService.setUserName(name);
         AnalyticsService().trackOnboardingNameEntered(name);
+        setState(() => _currentStep = 3);
+      }
+    }
+    // Step 3: Presets
+    else if (_currentStep == 3) {
+      if (_customPresets.isNotEmpty) {
+        widget.onboardingService.setPresetTimers(_customPresets);
         setState(() => _currentStep = 4);
       }
     }
-    // Step 4: Presets
+    // Step 4: Demo Timer - just continue after completion
     else if (_currentStep == 4) {
-      if (_customPresets.isNotEmpty) {
-        widget.onboardingService.setPresetTimers(_customPresets);
-        setState(() => _currentStep = 5);
-      }
+      setState(() => _currentStep = 5);
     }
-    // Step 5: Demo Timer - just continue after completion
+    // Step 5: Notifications
     else if (_currentStep == 5) {
       setState(() => _currentStep = 6);
     }
-    // Step 6: Notifications
+    // Step 6: Progress Seed - Complete onboarding
     else if (_currentStep == 6) {
-      setState(() => _currentStep = 7);
-    }
-    // Step 7: Microphone Permission
-    else if (_currentStep == 7) {
-      setState(() => _currentStep = 8);
-    }
-    // Step 8: Progress Seed - Complete onboarding
-    else if (_currentStep == 8) {
       widget.onboardingService.completeOnboarding();
       AnalyticsService().trackOnboardingCompleted(_customPresets.length);
       SupabaseService().updateOnboardingCompleted();
@@ -498,22 +474,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget _buildCurrentStep() {
     switch (_currentStep) {
       case 0:
-        return _buildLanguageStep();
-      case 1:
         return _buildValueDemoStep();
-      case 2:
+      case 1:
         return _buildUseCaseStep();
-      case 3:
+      case 2:
         return _buildNameStep();
-      case 4:
+      case 3:
         return _buildPresetsStep();
-      case 5:
+      case 4:
         return _buildDemoTimerStep();
-      case 6:
+      case 5:
         return _buildNotificationStep();
-      case 7:
-        return _buildMicrophoneStep();
-      case 8:
+      case 6:
         return _buildProgressSeedStep();
       default:
         return const SizedBox.shrink();
@@ -574,7 +546,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Widget _buildProgressDots(int activeIndex) {
     return Row(
-      children: List.generate(10, (index) {
+      children: List.generate(7, (index) {
         return Container(
           width: 8,
           height: 8,
@@ -662,78 +634,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildLanguageStep() {
-    final languages = LocalizationService().getSupportedLanguages();
-    _selectedLanguage ??= context.locale;
-
-    final selectedLanguage = languages.firstWhere(
-      (lang) => lang.locale == _selectedLanguage,
-      orElse: () => languages.first,
-    );
-
-    // Track analytics once when language screen is first viewed
-    if (!_hasTrackedLanguageView) {
-      _hasTrackedLanguageView = true;
-      AnalyticsService().trackOnboardingLanguageViewed();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'onboarding.chooseLanguage'.tr(),
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: '.SF Pro Rounded',
-                      color: AppTheme.accent,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'onboarding.changeAnytime'.tr(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      fontFamily: '.SF Pro Text',
-                      color: MediaPlayerStyles.mutedColor.withValues(
-                        alpha: 0.7,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: 320,
-                    child: _LanguageDropdown(
-                      languages: languages,
-                      selectedLanguage: selectedLanguage,
-                      onLanguageSelected: (locale) {
-                        setState(() {
-                          _selectedLanguage = locale;
-                        });
-                        // Apply locale immediately so UI updates
-                        context.setLocale(locale);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [_buildProgressDots(1), _buildNextButton(text: 'Next')],
-          ),
-        ],
-      ),
-    );
-  }
 
   // NEW: Value Demo Step - Shows animated ant preview
   Widget _buildValueDemoStep() {
@@ -1229,184 +1129,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildMicrophoneStep() {
-    return Padding(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.accent.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.mic_rounded,
-              size: 64,
-              color: AppTheme.accent,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'Voice Control',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              fontFamily: '.SF Pro Rounded',
-              color: AppTheme.accent,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Control your timers and settings with your voice.\nRequires microphone access for speech recognition.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              fontFamily: '.SF Pro Text',
-              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.7),
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 48),
-          
-          // Settings-style permission card
-          GestureDetector(
-            onTap: () {
-              if (_micPermanentlyDenied) {
-                _openSystemSettings();
-              } else if (!widget.onboardingService.microphoneEnabled && !_isRequestingMic) {
-                _enableMicrophone();
-              } else if (widget.onboardingService.microphoneEnabled) {
-                widget.onboardingService.setMicrophoneEnabled(false);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: _micPermanentlyDenied 
-                    ? Colors.red.withValues(alpha: 0.05) 
-                    : MediaPlayerStyles.subtleBackground,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: _micPermanentlyDenied 
-                      ? Colors.red.withValues(alpha: 0.2) 
-                      : MediaPlayerStyles.subtleBorder,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _micPermanentlyDenied 
-                          ? Colors.red.withValues(alpha: 0.1) 
-                          : AppTheme.accent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      _micPermanentlyDenied ? Icons.error_outline_rounded : Icons.mic_rounded, 
-                      color: _micPermanentlyDenied ? Colors.red : AppTheme.accent, 
-                      size: 24
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _micPermanentlyDenied ? 'Permission Denied' : 'Enable Voice Commands',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: '.SF Pro Text',
-                            color: _micPermanentlyDenied ? Colors.red.shade700 : Colors.black,
-                          ),
-                        ),
-                        Text(
-                          _micPermanentlyDenied 
-                            ? 'Tap to open System Settings' 
-                            : (widget.onboardingService.microphoneEnabled 
-                                ? 'Permission granted' 
-                                : 'Tap to grant access'),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: _micPermanentlyDenied 
-                                ? Colors.red.withValues(alpha: 0.6) 
-                                : MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_isRequestingMic)
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else if (_micPermanentlyDenied)
-                    Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.red.withValues(alpha: 0.5))
-                  else
-                    Switch.adaptive(
-                      value: widget.onboardingService.microphoneEnabled,
-                      activeColor: AppTheme.accent,
-                      onChanged: (value) {
-                        if (value) {
-                          _enableMicrophone();
-                        } else {
-                          widget.onboardingService.setMicrophoneEnabled(false);
-                        }
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-          
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildProgressDots(8),
-              Row(
-                children: [
-                   GestureDetector(
-                    onTap: _nextStep,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: Text(
-                        'Maybe Later',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: MediaPlayerStyles.mutedColor,
-                          fontFamily: '.SF Pro Text',
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildNextButton(
-                    text: widget.onboardingService.microphoneEnabled ? 'Continue' : 'Next',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildPresetInput() {
     return Row(
@@ -1741,270 +1463,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 }
 
-// Minimal, modern language selector with type-ahead search
-class _LanguageDropdown extends StatefulWidget {
-  final List<LocaleInfo> languages;
-  final LocaleInfo selectedLanguage;
-  final Function(Locale) onLanguageSelected;
 
-  const _LanguageDropdown({
-    required this.languages,
-    required this.selectedLanguage,
-    required this.onLanguageSelected,
-  });
-
-  @override
-  State<_LanguageDropdown> createState() => _LanguageDropdownState();
-}
-
-class _LanguageDropdownState extends State<_LanguageDropdown> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  bool _isExpanded = false;
-  List<LocaleInfo> _filteredLanguages = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredLanguages = widget.languages;
-    _searchController.addListener(_filterLanguages);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _filterLanguages() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      if (query.isEmpty) {
-        _filteredLanguages = widget.languages;
-      } else {
-        _filteredLanguages =
-            widget.languages.where((lang) {
-              return lang.nativeName.toLowerCase().contains(query) ||
-                  lang.locale.languageCode.toLowerCase().contains(query);
-            }).toList();
-      }
-    });
-  }
-
-  void _toggleDropdown() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _focusNode.requestFocus();
-      } else {
-        _focusNode.unfocus();
-        _searchController.clear();
-      }
-    });
-  }
-
-  void _selectLanguage(LocaleInfo language) {
-    widget.onLanguageSelected(language.locale);
-    setState(() {
-      _isExpanded = false;
-      _searchController.clear();
-    });
-    _focusNode.unfocus();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Selected language display (like the name field)
-        GestureDetector(
-          onTap: _toggleDropdown,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color:
-                      _isExpanded
-                          ? AppTheme.accent
-                          : MediaPlayerStyles.subtleBorder,
-                  width: 2,
-                ),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  widget.selectedLanguage.nativeName,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: '.SF Pro Text',
-                    color: MediaPlayerStyles.mutedColor,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Icon(
-                  _isExpanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.6),
-                  size: 28,
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Dropdown list with search
-        if (_isExpanded)
-          Container(
-            margin: const EdgeInsets.only(top: 16),
-            constraints: const BoxConstraints(maxHeight: 240),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Search field
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: TextField(
-                    controller: _searchController,
-                    focusNode: _focusNode,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontFamily: '.SF Pro Text',
-                      color: MediaPlayerStyles.mutedColor,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Search languages...',
-                      hintStyle: TextStyle(
-                        color: MediaPlayerStyles.mutedColor.withValues(
-                          alpha: 0.4,
-                        ),
-                        fontSize: 16,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search_rounded,
-                        color: MediaPlayerStyles.mutedColor.withValues(
-                          alpha: 0.4,
-                        ),
-                        size: 20,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: MediaPlayerStyles.subtleBorder,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: MediaPlayerStyles.subtleBorder,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: AppTheme.accent.withValues(alpha: 0.5),
-                          width: 1.5,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Language list
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _filteredLanguages.length,
-                    itemBuilder: (context, index) {
-                      final language = _filteredLanguages[index];
-                      final isSelected =
-                          language.locale == widget.selectedLanguage.locale;
-
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _selectLanguage(language),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  isSelected
-                                      ? AppTheme.accent.withValues(alpha: 0.08)
-                                      : Colors.transparent,
-                              border: Border(
-                                bottom: BorderSide(
-                                  color:
-                                      index == _filteredLanguages.length - 1
-                                          ? Colors.transparent
-                                          : MediaPlayerStyles.subtleBorder
-                                              .withValues(alpha: 0.3),
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    language.nativeName,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight:
-                                          isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                      color:
-                                          isSelected
-                                              ? AppTheme.accent
-                                              : MediaPlayerStyles.mutedColor,
-                                      fontFamily: '.SF Pro Text',
-                                    ),
-                                  ),
-                                ),
-                                if (isSelected)
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    color: AppTheme.accent,
-                                    size: 20,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 class _DemoTimerWidget extends StatefulWidget {
   final VoidCallback onComplete;
