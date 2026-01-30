@@ -55,7 +55,6 @@ class _FeedbackModalState extends State<FeedbackModal> {
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Container(
-        width: 400,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),

@@ -252,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       bottom: 0,
                       child: AntProgressIndicator(
                         timer: timer,
-                        windowWidth: 600,
+                        windowWidth: 750,
                       ),
                     ),
 
