@@ -3,19 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../services/analytics_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/notification_service.dart';
-import '../services/localization_service.dart';
 import '../services/supabase_service.dart';
 import 'theme.dart';
-import 'package:provider/provider.dart';
 import '../services/sound_service.dart';
 import '../providers/timer_provider.dart';
 import 'widgets/ant_progress_indicator.dart';
 import 'widgets/media_player_control.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final OnboardingService onboardingService;
@@ -59,10 +55,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   bool _showContent = false;
   int _countdownValue = 5;
   Timer? _countdownTimer;
-  bool _countdownTimerActive = false;
-  bool _isRequestingMic = false;
-  bool _micPermanentlyDenied = false;
-  final stt.SpeechToText _speech = stt.SpeechToText();
 
   @override
   void initState() {
@@ -150,15 +142,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     });
   }
 
-  Future<void> _openSystemSettings() async {
-    final Uri url = Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      // Fallback for newer macOS or different schemes
-      await launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security'));
-    }
-  }
+
 
   void _onServiceChange() {
     if (mounted) setState(() {});
@@ -296,54 +280,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
-  Future<void> _enableMicrophone() async {
-    if (_isRequestingMic) return;
-    
-    setState(() {
-      _isRequestingMic = true;
-      _micPermanentlyDenied = false;
-    });
 
-    try {
-      debugPrint('Starting microphone initialization...');
-      
-      // initialize() will trigger the system permission dialogs.
-      // We check available status.
-      bool available = await _speech.initialize(
-        onError: (error) {
-          debugPrint('Speech initialize onError: ${error.errorMsg} (Permanent: ${error.permanent})');
-          if (error.errorMsg.contains('not_allowed') || 
-              error.errorMsg.contains('denied') || 
-              error.errorMsg.contains('error_permission')) {
-             setState(() => _micPermanentlyDenied = true);
-          }
-        },
-        onStatus: (status) => debugPrint('Speech status change: $status'),
-        debugLogging: true,
-      );
-      
-      final hasPermission = await _speech.hasPermission;
-      debugPrint('Initialization finished. Available: $available, Has Permission: $hasPermission');
-
-      if (available || hasPermission) {
-        await widget.onboardingService.setMicrophoneEnabled(true);
-      } else {
-        // Only set permanently denied if we're sure it's a permission issue
-        // and not just a service-unavailable issue.
-        if (!hasPermission) {
-          debugPrint('Permission check failed after initialization attempt');
-          // If we haven't seen an error yet, we'll wait a moment as some Macs are slow
-        }
-      }
-    } catch (e) {
-      debugPrint('Error during microphone enable: $e');
-      await widget.onboardingService.setMicrophoneEnabled(false);
-    } finally {
-      if (mounted) {
-        setState(() => _isRequestingMic = false);
-      }
-    }
-  }
 
   String _formatDuration(int totalSeconds) {
     final mins = totalSeconds ~/ 60;
@@ -492,57 +429,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
-  Widget _buildCommonExplanationScreen({
-    required Widget content,
-    required int stepIndex,
-    String nextLabel = 'Next',
-    String title = 'The Pomodoro technique',
-  }) {
-    return Padding(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              fontFamily: '.SF Pro Rounded',
-              color: Color(0xFF2D2D2D),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Expanded(child: SingleChildScrollView(child: content)),
-          const SizedBox(height: 20),
-          Text(
-            'Stay focused... Small steps matter.',
-            style: TextStyle(
-              fontSize: 14,
-              color: MediaPlayerStyles.mutedColor.withValues(alpha: 0.8),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildProgressDots(stepIndex),
-              stepIndex == 1
-                  ? _buildNextButton(text: nextLabel)
-                  : Row(
-                    children: [
-                      _buildPreviousButton(),
-                      const SizedBox(width: 16),
-                      _buildNextButton(text: nextLabel),
-                    ],
-                  ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildProgressDots(int activeIndex) {
     return Row(

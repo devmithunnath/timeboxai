@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import '../providers/timer_provider.dart';
@@ -10,9 +9,7 @@ class MenuBarService with TrayListener {
   MenuBarService._internal();
 
   TimerProvider? _timerProvider;
-  Timer? _animationTimer;
   int _waveFrame = 0;
-  final List<String> _waveFrames = ['▖', '▘', '▝', '▗']; // Spinning block effect
   final List<String> _listeningFrames = ['▃', '▅', '▇', '▆', '▄'];
 
   Future<void> init(TimerProvider timerProvider) async {

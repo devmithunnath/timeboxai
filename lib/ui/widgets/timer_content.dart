@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/timer_provider.dart';
 import '../../services/onboarding_service.dart';
-import '../theme.dart';
 import 'add_preset_modal.dart';
 import 'editable_timer_display.dart';
 import 'media_player_control.dart';

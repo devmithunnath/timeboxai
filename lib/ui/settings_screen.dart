@@ -2,15 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:easy_localization/easy_localization.dart';
 import '../services/onboarding_service.dart';
-import '../services/supabase_service.dart';
 import 'theme.dart';
 import 'widgets/section_header.dart';
 import 'widgets/media_player_control.dart';
 import 'widgets/feedback_modal.dart';
 import 'widgets/toast.dart';
-import '../services/localization_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   final VoidCallback onClose;

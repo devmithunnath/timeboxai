@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -27,10 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isListening = false;
   final VoiceCommandService _voiceCommandService = VoiceCommandService();
   String _lastWords = '';
-
-  static const double _antAreaHeight = 0;
-  static const double _footerTextHeight = 40;
-  static const double _bottomReserved = _antAreaHeight + _footerTextHeight;
 
   @override
   void initState() {
@@ -104,10 +99,15 @@ class _HomeScreenState extends State<HomeScreen> {
     List<HotKeyModifier> modifiers = [];
     for (final modStr in savedModifiers) {
       final m = modStr.toLowerCase();
-      if (m == 'shift') modifiers.add(HotKeyModifier.shift);
-      else if (m == 'alt' || m == 'option') modifiers.add(HotKeyModifier.alt);
-      else if (m == 'control' || m == 'ctrl') modifiers.add(HotKeyModifier.control);
-      else if (m == 'meta' || m == 'command') modifiers.add(HotKeyModifier.meta);
+      if (m == 'shift') {
+        modifiers.add(HotKeyModifier.shift);
+      } else if (m == 'alt' || m == 'option') {
+        modifiers.add(HotKeyModifier.alt);
+      } else if (m == 'control' || m == 'ctrl') {
+        modifiers.add(HotKeyModifier.control);
+      } else if (m == 'meta' || m == 'command') {
+        modifiers.add(HotKeyModifier.meta);
+      }
     }
 
     HotKey hotKey = HotKey(
