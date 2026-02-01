@@ -268,8 +268,7 @@ class _AntProgressIndicatorState extends State<AntProgressIndicator>
           child: Transform(
             alignment: Alignment.bottomCenter,
             transform:
-                Matrix4.identity()
-                  ..scale(scale)
+                Matrix4.diagonal3Values(scale, scale, 1.0)
                   ..rotateZ(rotation),
             child: Column(
               mainAxisSize: MainAxisSize.min,

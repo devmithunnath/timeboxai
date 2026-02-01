@@ -187,7 +187,7 @@ class SettingsScreen extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: AppTheme.accent,
+            activeTrackColor: AppTheme.accent,
           ),
         ],
       ),
@@ -324,9 +324,9 @@ class _HotkeyRecorderState extends State<_HotkeyRecorder> {
     super.dispose();
   }
 
-  void _handleKeyEvent(RawKeyEvent event) {
+  void _handleKeyEvent(KeyEvent event) {
     if (!_isRecording) return;
-    if (event is! RawKeyDownEvent) return;
+    if (event is! KeyDownEvent) return;
 
     final key = event.logicalKey;
     
@@ -343,10 +343,10 @@ class _HotkeyRecorderState extends State<_HotkeyRecorder> {
     }
 
     List<String> modifiers = [];
-    if (event.isControlPressed) modifiers.add('Control');
-    if (event.isAltPressed) modifiers.add('Alt');
-    if (event.isShiftPressed) modifiers.add('Shift');
-    if (event.isMetaPressed) modifiers.add('Command');
+    if (HardwareKeyboard.instance.isControlPressed) modifiers.add('Control');
+    if (HardwareKeyboard.instance.isAltPressed) modifiers.add('Alt');
+    if (HardwareKeyboard.instance.isShiftPressed) modifiers.add('Shift');
+    if (HardwareKeyboard.instance.isMetaPressed) modifiers.add('Command');
 
     String label = '';
     if (modifiers.isNotEmpty) {
@@ -406,9 +406,9 @@ class _HotkeyRecorderState extends State<_HotkeyRecorder> {
               ],
             ),
           ),
-          RawKeyboardListener(
+          KeyboardListener(
             focusNode: _focusNode,
-            onKey: _handleKeyEvent,
+            onKeyEvent: _handleKeyEvent,
             child: GestureDetector(
               onTap: () {
                 setState(() {
