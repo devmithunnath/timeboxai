@@ -1,4 +1,4 @@
-# Timebox AI
+# PipBox
 
 A minimalist, dark-themed timeboxing application built for macOS using Flutter. Designed to help you focus with a clean interface and essential timer features.
 
@@ -44,8 +44,8 @@ A minimalist, dark-themed timeboxing application built for macOS using Flutter. 
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/devmithunnath/timeboxai.git
-   cd timeboxai
+   git clone https://github.com/devmithunnath/pipbox.git
+   cd pipbox
    ```
 
 2. **Install dependencies**:

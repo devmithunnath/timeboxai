@@ -1,294 +1,313 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../services/onboarding_service.dart';
+import '../services/voice_command_service.dart';
+import 'widgets/toast.dart';
 import '../providers/timer_provider.dart';
-import 'theme.dart';
-import 'widgets/media_player_control.dart';
+import 'settings_screen.dart';
+import 'widgets/ant_progress_indicator.dart';
+import 'widgets/settings_button.dart';
+import 'widgets/timer_content.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Consumer<TimerProvider>(
-          builder: (context, timer, child) {
-            // Calculate ant position: progress 1.0 = start (right), 0.0 = end (left)
-            // Window width is 600, ant is 240 wide.
-            // Start position: right edge (right: -20)
-            // End position: left edge (left: ~20, which means right: 600 - 240 - 20 = 340)
-            // As progress goes from 1.0 to 0.0, ant moves from right to left
-            final double windowWidth = 600;
-            final double antWidth = 240;
-            final double startRight = -20; // Starting position (right side)
-            final double endRight =
-                windowWidth - antWidth + 20; // Ending position (left side)
-
-            // Lerp from start to end based on inverse progress (1.0 = start, 0.0 = end)
-            final double currentRight =
-                startRight + (endRight - startRight) * (1.0 - timer.progress);
-
-            return Stack(
-              children: [
-                // Window Drag Area & Traffic Lights Placeholder
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 40,
-                  child: GestureDetector(
-                    onPanStart: (_) => windowManager.startDragging(),
-                    child: Container(
-                      color: Colors.transparent,
-                      padding: const EdgeInsets.only(left: 16, top: 12),
-                    ),
-                  ),
-                ),
-
-                // Main Content
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(24, 48, 24, 24),
-                  child: _TimerContent(),
-                ),
-
-                // Ant Character - moves from right to left based on progress
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  right: currentRight,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Image.asset(
-                      'assets/images/character.png',
-                      width: antWidth,
-                      height: 240,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _TimerContent extends StatelessWidget {
-  const _TimerContent();
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<TimerProvider>(
-      builder: (context, timer, _) {
-        return Column(
-          children: [
-            // Play Button (with Stop button when active)
-            MediaPlayerControl(
-              isPlaying: timer.isRunning,
-              isActive: timer.isRunning || timer.isPaused,
-              onPlayPause: () {
-                if (timer.isRunning) {
-                  timer.pauseTimer();
-                } else {
-                  timer.startTimer();
-                }
-              },
-              onStop: timer.resetTimer,
-            ),
-
-            const SizedBox(height: 10),
-
-            // "Focus Run" Label
-            Text(
-              "Focus Run",
-              style: TextStyle(
-                fontSize: 18,
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            // Timer Display
-            _EditableTimerDisplay(
-              timer: timer,
-              durationSeconds: timer.durationSeconds,
-            ),
-
-            const SizedBox(height: 24),
-
-            // Presets
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _PresetButton(label: "5 mins", seconds: 5 * 60, timer: timer),
-                const SizedBox(width: 12),
-                _PresetButton(label: "10 mins", seconds: 10 * 60, timer: timer),
-                const SizedBox(width: 12),
-                _PresetButton(label: "15 mins", seconds: 15 * 60, timer: timer),
-              ],
-            ),
-
-            const Spacer(),
-
-            // Footer Quote
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Text(
-                "Small steps matter.",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textSecondary.withOpacity(0.7),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _PresetButton extends StatelessWidget {
-  final String label;
-  final int seconds;
-  final TimerProvider timer;
-
-  const _PresetButton({
-    required this.label,
-    required this.seconds,
-    required this.timer,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    bool isActive = timer.durationSeconds == seconds;
-    return GestureDetector(
-      onTap: () {
-        timer.resetTimer();
-        timer.setDuration(seconds);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? AppTheme.accent : AppTheme.card,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EditableTimerDisplay extends StatefulWidget {
-  final TimerProvider timer;
-  final int durationSeconds;
-
-  const _EditableTimerDisplay({
-    required this.timer,
-    required this.durationSeconds,
-  });
-
-  @override
-  State<_EditableTimerDisplay> createState() => _EditableTimerDisplayState();
-}
-
-class _EditableTimerDisplayState extends State<_EditableTimerDisplay> {
-  late TextEditingController _controller;
+class _HomeScreenState extends State<HomeScreen> {
+  bool _showSettings = false;
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
+  final VoiceCommandService _voiceCommandService = VoiceCommandService();
+  String _lastWords = '';
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(
-      text: _formatDuration(widget.durationSeconds),
-    );
+    _initHotkey();
+    _initSpeech();
+    
+    // Listen for hotkey changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final onboarding = Provider.of<OnboardingService>(context, listen: false);
+      onboarding.addListener(_onOnboardingChanged);
+    });
   }
 
-  @override
-  void didUpdateWidget(_EditableTimerDisplay oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.durationSeconds != oldWidget.durationSeconds) {
-      String newText = _formatDuration(widget.durationSeconds);
-      if (_controller.text != newText) {
-        _controller.text = newText;
+  void _onOnboardingChanged() {
+    _initHotkey();
+  }
+
+  Future<void> _initSpeech() async {
+    final onboarding = Provider.of<OnboardingService>(context, listen: false);
+    if (onboarding.microphoneEnabled) {
+      try {
+        await _speech.initialize(
+          onStatus: _handleSpeechStatus,
+          onError: _handleSpeechError,
+        );
+      } catch (e) {
+        debugPrint('Pre-initializing speech failed: $e');
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    TextStyle timerStyle = const TextStyle(
-      fontSize: 56,
-      fontWeight: FontWeight.w600,
-      fontFamily: '.SF Pro Display',
-      color: AppTheme.textPrimary,
-      letterSpacing: 2,
-    );
+  void _handleSpeechStatus(String status) {
+    if (status == 'done' || status == 'notListening') {
+      if (_isListening) {
+        _stopListening();
+      }
+    }
+  }
 
-    if (widget.timer.isRunning ||
-        widget.timer.isPaused ||
-        widget.timer.isFinished) {
-      final duration = widget.timer.remainingDuration;
-      String twoDigits(int n) => n.toString().padLeft(2, '0');
-      final minutes = twoDigits(
-        duration.inMinutes.remainder(60) + duration.inHours * 60,
+  void _handleSpeechError(dynamic error) {
+    if (_isListening) {
+      AppToast.show(
+        context,
+        'Speech Error: ${error.errorMsg}',
+        isError: true,
       );
-      final seconds = twoDigits(duration.inSeconds.remainder(60));
-      return Text("$minutes:$seconds", style: timerStyle);
+      _stopListening();
+    }
+  }
+
+  @override
+  void dispose() {
+    final onboarding = Provider.of<OnboardingService>(context, listen: false);
+    onboarding.removeListener(_onOnboardingChanged);
+    hotKeyManager.unregisterAll();
+    super.dispose();
+  }
+
+  Future<void> _initHotkey() async {
+    final onboarding = Provider.of<OnboardingService>(context, listen: false);
+    await hotKeyManager.unregisterAll();
+
+    // Map from onboarding service values
+    final savedId = onboarding.hotkeyId;
+    final savedModifiers = onboarding.hotkeyModifiers;
+
+    // Resolve LogicalKeyboardKey from saved ID
+    LogicalKeyboardKey keyCode = LogicalKeyboardKey(savedId);
+
+    List<HotKeyModifier> modifiers = [];
+    for (final modStr in savedModifiers) {
+      final m = modStr.toLowerCase();
+      if (m == 'shift') {
+        modifiers.add(HotKeyModifier.shift);
+      } else if (m == 'alt' || m == 'option') {
+        modifiers.add(HotKeyModifier.alt);
+      } else if (m == 'control' || m == 'ctrl') {
+        modifiers.add(HotKeyModifier.control);
+      } else if (m == 'meta' || m == 'command') {
+        modifiers.add(HotKeyModifier.meta);
+      }
     }
 
-    return SizedBox(
-      width: 240,
-      child: TextField(
-        textAlign: TextAlign.center,
-        style: timerStyle,
-        controller: _controller,
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-        ),
-        onChanged: (val) {
-          final seconds = _parseDuration(val);
-          if (seconds > 0) widget.timer.setDuration(seconds);
-        },
+    HotKey hotKey = HotKey(
+      key: keyCode,
+      modifiers: modifiers,
+      scope: HotKeyScope.system,
+    );
+
+    await hotKeyManager.register(
+      hotKey,
+      keyDownHandler: (hotKey) {
+        _startListening();
+      },
+      keyUpHandler: (hotKey) {
+        _stopListening();
+      },
+    );
+  }
+
+  Future<void> _startListening() async {
+    if (_isListening) return;
+
+    // Check if initialized, if not try once
+    if (!_speech.isAvailable) {
+      final available = await _speech.initialize(
+        onStatus: _handleSpeechStatus,
+        onError: _handleSpeechError,
+      );
+      
+      if (!available) {
+        final hasPermission = await _speech.hasPermission;
+        if (!hasPermission) {
+          AppToast.show(context, 'Speech recognition permission denied. Please check System Settings.', isError: true);
+        } else {
+          AppToast.show(context, 'Speech recognition currently unavailable', isError: true);
+        }
+        return;
+      }
+    }
+
+    setState(() {
+      _isListening = true;
+      _lastWords = '';
+    });
+    
+    // Sync with global state for Menubar
+    Provider.of<TimerProvider>(context, listen: false).setListening(true);
+    
+    AppToast.show(
+      context,
+      'Listening...',
+      duration: const Duration(seconds: 1),
+    );
+    
+    await _speech.listen(
+      onResult: (result) {
+        setState(() => _lastWords = result.recognizedWords);
+      },
+      listenFor: const Duration(seconds: 15),
+      pauseFor: const Duration(seconds: 3),
+    );
+  }
+
+  Future<void> _stopListening() async {
+    if (!_isListening) return;
+    await _speech.stop();
+    setState(() => _isListening = false);
+    
+    // Sync with global state for Menubar
+    if (mounted) {
+      Provider.of<TimerProvider>(context, listen: false).setListening(false);
+    }
+
+    if (_lastWords.isNotEmpty) {
+      _processCommand(_lastWords);
+    }
+  }
+
+  void _processCommand(String text) {
+    if (text.isEmpty) return;
+    final timer = Provider.of<TimerProvider>(context, listen: false);
+    final onboarding = Provider.of<OnboardingService>(context, listen: false);
+
+    _voiceCommandService.handleCommand(
+      transcript: text,
+      context: context,
+      timer: timer,
+      onboarding: onboarding,
+    );
+  }
+
+  void _openSettings() {
+    setState(() => _showSettings = true);
+  }
+
+  void _closeSettings() {
+    setState(() => _showSettings = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            color: Colors.white,
+            child: Consumer<TimerProvider>(
+              builder: (context, timer, child) {
+                return Stack(
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 40,
+                      child: GestureDetector(
+                        onPanStart: (_) => windowManager.startDragging(),
+                        child: Container(
+                          color: Colors.transparent,
+                          padding: const EdgeInsets.only(left: 16, top: 12),
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: SettingsButton(onPressed: _openSettings),
+                    ),
+
+                    Positioned(
+                      top: 48,
+                      left: 24,
+                      right: 24,
+                      bottom: 120,
+                      child: const TimerContent(),
+                    ),
+
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: AntProgressIndicator(
+                        timer: timer,
+                        windowWidth: 750,
+                      ),
+                    ),
+
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 8,
+                      child: const Center(
+                        child: Text(
+                          "Small steps matter.",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontFamily: '.SF Pro Text',
+                            fontWeight: FontWeight.w400,
+                            color: Colors.black,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_isListening && _lastWords.isNotEmpty)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 60,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              _lastWords,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+
+          if (_showSettings) SettingsScreen(onClose: _closeSettings),
+        ],
       ),
     );
-  }
-
-  String _formatDuration(int totalSeconds) {
-    final duration = Duration(seconds: totalSeconds);
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(
-      duration.inMinutes.remainder(60) + duration.inHours * 60,
-    );
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$minutes:$seconds";
-  }
-
-  int _parseDuration(String input) {
-    final parts = input.split(':').map((e) => int.tryParse(e) ?? 0).toList();
-    if (parts.isEmpty) return 0;
-    if (parts.length == 1) return parts[0] * 60;
-    if (parts.length == 2) return parts[0] * 60 + parts[1];
-    return 0;
   }
 }

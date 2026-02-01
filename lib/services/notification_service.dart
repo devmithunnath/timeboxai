@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -8,18 +11,43 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  bool _isInitialized = false;
+
   Future<void> init() async {
+    if (_isInitialized) return;
+
+    // Initialize without requesting permissions immediately
     const DarwinInitializationSettings initializationSettingsMacOS =
         DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
         );
 
     const InitializationSettings initializationSettings =
         InitializationSettings(macOS: initializationSettingsMacOS);
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (details) async {
+        // Bring app to front when notification is clicked
+        await windowManager.show();
+        await windowManager.focus();
+      },
+    );
+    _isInitialized = true;
+    if (kDebugMode) print('NotificationService initialized');
+  }
+
+  Future<bool> requestPermissions() async {
+    if (kDebugMode) print('Requesting notification permissions...');
+    final bool? result = await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
+    if (kDebugMode) print('Notification permissions result: $result');
+    return result ?? false;
   }
 
   Future<void> showNotification({
@@ -27,12 +55,32 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    // Check if notifications are enabled in settings
+    final prefs = await SharedPreferences.getInstance();
+    final isEnabled = prefs.getBool('notifications_enabled') ?? true;
+    
+    if (!isEnabled) {
+      if (kDebugMode) print('Notification suppressed: settings indicate disabled');
+      return;
+    }
+
+    if (!_isInitialized) {
+      if (kDebugMode) {
+        print('NotificationService NOT initialized. Attempting to init...');
+      }
+      await init();
+    }
+
+    if (kDebugMode) print('Showing notification: $title - $body');
     const DarwinNotificationDetails macOSPlatformChannelSpecifics =
         DarwinNotificationDetails(
           presentSound: true,
           presentAlert: true,
           presentBadge: true,
+          interruptionLevel:
+              InterruptionLevel.active, // Ensure it shows over other apps
         );
+
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       macOS: macOSPlatformChannelSpecifics,
     );
